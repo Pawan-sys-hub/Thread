@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Categories — Admin | TrendTrack</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>
+    body {
+      margin: 0;
+      background: var(--gray-100)
+    }
+  </style>
+</head>
+
+<body data-page="categories">
+  <script src="../../js/main.js"></script>
+  <script src="../../js/admin.js"></script>
+
+  <div class="modal-backdrop" id="catModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="catModalTitle">Add Category</h3>
+        <button class="modal-close" onclick="closeModal('catModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="catForm">
+          <input type="hidden" id="catEditId">
+          <div class="form-group">
+            <label class="form-label">Category Name *</label>
+            <input type="text" id="catName" class="form-control" required placeholder="e.g. Electronics">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Icon Emoji</label>
+            <input type="text" id="catIcon" class="form-control" value="🔥" placeholder="e.g. 💻" maxlength="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="catDesc" class="form-control" rows="3" placeholder="Short description…"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('catModal')" class="btn btn-ghost btn-sm">Cancel</button>
+        <button onclick="saveCategory()" id="saveCatBtn" class="btn btn-primary btn-sm">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (async () => {
+      const user = await requireAdmin();
+      if (!user) return;
+      buildAdminLayout('Categories', 'Manage product categories');
+      document.getElementById('adminUserAvatar').textContent = user.name?.charAt(0)?.toUpperCase() || 'A';
+
+      document.getElementById('adminContent').innerHTML = `
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h3 class="admin-card-title">All Categories</h3>
+        <button onclick="openAddCat()" class="btn btn-primary btn-sm">+ Add Category</button>
+      </div>
+      <div class="admin-card-body">
+        <table class="admin-table">
+          <thead><tr><th>Icon</th><th>Name</th><th>Slug</th><th>Description</th><th>Actions</th></tr></thead>
+          <tbody id="catsBody"><tr>${loadingRow(5)}</tr></tbody>
+        </table>
+      </div>
+    </div>`;
+
+      setupModalClose('catModal');
+      loadCategories();
+    })();
+
+    async function loadCategories() {
+      const data = await get(API.adminCategories);
+      const body = document.getElementById('catsBody');
+      if (!data.success) { body.innerHTML = emptyState('Failed to load.', '❌'); return; }
+      if (!data.categories.length) { body.innerHTML = emptyState('No categories yet.', '🗂️'); return; }
+      body.innerHTML = data.categories.map(c => `
+    <tr>
+      <td style="font-size:1.8rem;text-align:center">${c.icon}</td>
+      <td><span style="font-weight:600">${c.name}</span></td>
+      <td><code style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-size:0.8rem">${c.slug}</code></td>
+      <td style="color:var(--gray-500);font-size:0.85rem;max-width:260px">${c.description || '—'}</td>
+      <td>
+        <div class="admin-actions">
+          <button onclick='editCategory(${JSON.stringify(c)})' class="action-btn edit">✏️ Edit</button>
+          <button onclick="deleteCategory(${c.id}, '${c.name.replace(/'/g, "\\\'")}')" class="action-btn delete">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('');
+    }
+
+    function openAddCat() {
+      document.getElementById('catModalTitle').textContent = 'Add Category';
+      document.getElementById('catEditId').value = '';
+      document.getElementById('catForm').reset();
+      document.getElementById('catIcon').value = '🔥';
+      openModal('catModal');
+    }
+
+    function editCategory(c) {
+      document.getElementById('catModalTitle').textContent = 'Edit Category';
+      document.getElementById('catEditId').value = c.id;
+      document.getElementById('catName').value = c.name;
+      document.getElementById('catIcon').value = c.icon;
+      document.getElementById('catDesc').value = c.description || '';
+      openModal('catModal');
+    }
+
+    async function saveCategory() {
+      const id = document.getElementById('catEditId').value;
+      const payload = {
+        name: document.getElementById('catName').value,
+        icon: document.getElementById('catIcon').value,
+        description: document.getElementById('catDesc').value,
+      };
+      const btn = document.getElementById('saveCatBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      const r = id ? await put(API.adminCategories, { ...payload, id }) : await post(API.adminCategories, payload);
+      if (r.success) { showToast(id ? 'Category updated!' : 'Category created!'); closeModal('catModal'); loadCategories(); }
+      else showToast(r.error || 'Failed.', 'error');
+      btn.disabled = false; btn.textContent = 'Save';
+    }
+
+    async function deleteCategory(id, name) {
+      confirmDelete(`Delete category "${name}"? All its products will also be deleted!`, async () => {
+        const r = await del(API.adminCategories, { id });
+        if (r.success) { showToast('Category deleted.'); loadCategories(); }
+        else showToast(r.error || 'Failed — may have linked products.', 'error');
+      });
+    }
+  </script>
+</body>
+
+</html>

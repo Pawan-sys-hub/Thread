@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+  <section class="section" style="padding-top:48px">
+    <div class="container" style="max-width:860px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px">
+        <div>
+          <h1 style="margin-bottom:4px">My Orders</h1>
+          <p>Track and manage your purchases</p>
+        </div>
+        <a href="trends.html" class="btn btn-outline btn-sm">Shop More</a>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+        <button onclick="filterOrders('')" class="btn btn-sm" id="f-all"
+          style="background:var(--black);color:white">All</button>
+        <button onclick="filterOrders('pending')" class="btn btn-ghost btn-sm" id="f-pending">Pending</button>
+        <button onclick="filterOrders('processing')" class="btn btn-ghost btn-sm" id="f-processing">Processing</button>
+        <button onclick="filterOrders('shipped')" class="btn btn-ghost btn-sm" id="f-shipped">Shipped</button>
+        <button onclick="filterOrders('delivered')" class="btn btn-ghost btn-sm" id="f-delivered">Delivered</button>
+        <button onclick="filterOrders('cancelled')" class="btn btn-ghost btn-sm" id="f-cancelled">Cancelled</button>
+      </div>
+      <div id="ordersList"></div>
+    </div>
+  </section>
+
+  <div class="modal-backdrop" id="orderModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalOrderTitle">Order Details</h3>
+        <button class="modal-close" onclick="closeModal('orderModal')">✕</button>
+      </div>
+      <div class="modal-body" id="modalOrderBody"></div>
+    </div>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script>
+    let allOrders = [];
+    let activeFilter = '';
+
+    async function loadOrders() {
+      await requireAuth();
+      const data = await get(API.order);
+      if (!data.success) { showToast('Failed to load orders.', 'error'); return; }
+      allOrders = data.orders || [];
+      renderOrders();
+    }
+
+    function filterOrders(status) {
+      activeFilter = status;
+      document.querySelectorAll('[id^="f-"]').forEach(b => { b.style.background = ''; b.style.color = ''; b.className = 'btn btn-ghost btn-sm'; });
+      const btn = document.getElementById(`f-${status || 'all'}`);
+      if (btn) { btn.style.background = 'var(--black)'; btn.style.color = 'white'; }
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const list = document.getElementById('ordersList');
+      const filtered = activeFilter ? allOrders.filter(o => o.status === activeFilter) : allOrders;
+      if (!filtered.length) {
+        list.innerHTML = '<div style="text-align:center;padding:64px 0"><div style="font-size:3.5rem;margin-bottom:16px">📦</div><h3 style="margin-bottom:8px">No orders found</h3><p>Start shopping to see your orders here.</p></div>';
+        return;
+      }
+      list.innerHTML = filtered.map(o => `
+    <div class="order-card">
+      <div class="order-card-header">
+        <div>
+          <span style="font-weight:700">Order #${o.id}</span>
+          <span style="font-size:0.78rem;color:var(--gray-400);margin-left:12px">${formatDate(o.created_at)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${statusBadge(o.status)}
+          <span style="font-weight:700">${formatNPR(o.total_amount)}</span>
+        </div>
+      </div>
+      <div class="order-card-body">
+        <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:8px">📍 ${o.shipping_address}</p>
+        <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:12px">💳 Payment: ${o.payment_method?.toUpperCase()} — ${statusBadge(o.payment_status || 'unpaid')}</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="viewOrder(${o.id})" class="action-btn view">View Details</button>
+          ${o.status === 'pending' ? `<button onclick="cancelOrder(${o.id})" class="action-btn delete">Cancel Order</button>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+    }
+
+    async function viewOrder(id) {
+      const data = await get(`${API.order}?id=${id}`);
+      if (!data.success) { showToast('Failed to load order.', 'error'); return; }
+      const o = data.order;
+      document.getElementById('modalOrderTitle').textContent = `Order #${o.id}`;
+      document.getElementById('modalOrderBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;font-size:0.875rem">
+      <div><span style="color:var(--gray-400)">Status</span><br>${statusBadge(o.status)}</div>
+      <div><span style="color:var(--gray-400)">Payment</span><br>${o.payment_method?.toUpperCase()} — ${statusBadge(o.payment_status || 'unpaid')}</div>
+      <div><span style="color:var(--gray-400)">Date</span><br>${formatDate(o.created_at)}</div>
+      <div><span style="color:var(--gray-400)">Phone</span><br>${o.phone}</div>
+    </div>
+    <p style="font-size:0.875rem;margin-bottom:16px"><span style="color:var(--gray-400)">Address:</span> ${o.shipping_address}</p>
+    <h4 style="margin-bottom:12px;font-size:0.9rem">Items</h4>
+    ${data.items.map(i => `
+      <div class="order-item-row">
+        <div class="order-item-img"><img src="${i.image_url || ''}" onerror="this.src='https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100'" style="width:100%;height:100%;object-fit:cover"></div>
+        <div style="flex:1"><div style="font-weight:600;font-size:0.875rem">${i.name}</div><div style="font-size:0.78rem;color:var(--gray-400)">Qty: ${i.quantity} × ${formatNPR(i.unit_price)}</div></div>
+        <div style="font-weight:700">${formatNPR(i.quantity * i.unit_price)}</div>
+      </div>`).join('')}
+    <div style="border-top:2px solid var(--border);padding-top:12px;margin-top:4px;display:flex;justify-content:space-between;font-weight:700">
+      <span>Total</span><span>${formatNPR(o.total_amount)}</span>
+    </div>`;
+      openModal('orderModal');
+    }
+
+    async function cancelOrder(id) {
+      if (!confirm('Are you sure you want to cancel this order?')) return;
+      const r = await put(API.order, { order_id: id });
+      if (r.success) { showToast('Order cancelled.'); loadOrders(); }
+      else showToast(r.error || 'Cannot cancel.', 'error');
+    }
+
+    setupModalClose('orderModal');
+    document.addEventListener('appReady', loadOrders);
+  </script>
+</body>
+
+</html>

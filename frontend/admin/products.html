@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — Admin | TrendTrack</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>
+    body {
+      margin: 0;
+      background: var(--gray-100)
+    }
+  </style>
+</head>
+
+<body data-page="products">
+  <script src="../../js/main.js"></script>
+  <script src="../../js/admin.js"></script>
+
+  <!-- Product Modal -->
+  <div class="modal-backdrop" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Add Product</h3>
+        <button class="modal-close" onclick="closeModal('productModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="productForm">
+          <input type="hidden" id="editId">
+          <div class="form-group">
+            <label class="form-label">Product Name *</label>
+            <input type="text" id="pName" class="form-control" required placeholder="e.g. Minimalist Sneakers">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <select id="pCategory" class="form-control" required></select>
+          </div>
+          <div class="grid-2" style="gap:12px">
+            <div class="form-group">
+              <label class="form-label">Price (रू) *</label>
+              <input type="number" id="pPrice" class="form-control" required min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Original Price (रू)</label>
+              <input type="number" id="pOriginalPrice" class="form-control" min="0" step="0.01" placeholder="Optional">
+            </div>
+          </div>
+          <div class="grid-2" style="gap:12px">
+            <div class="form-group">
+              <label class="form-label">Stock</label>
+              <input type="number" id="pStock" class="form-control" value="100" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Trend Score (0–100)</label>
+              <input type="number" id="pTrendScore" class="form-control" value="50" min="0" max="100">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Image URL</label>
+            <input type="url" id="pImageUrl" class="form-control" placeholder="https://…">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="pDescription" class="form-control" rows="3"></textarea>
+          </div>
+          <div style="display:flex;gap:20px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:0.875rem">
+              <input type="checkbox" id="pTrending" style="width:16px;height:16px;accent-color:var(--black)"> 🔥
+              Trending
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:0.875rem">
+              <input type="checkbox" id="pFeatured" style="width:16px;height:16px;accent-color:var(--black)"> ⭐ Featured
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('productModal')" class="btn btn-ghost btn-sm">Cancel</button>
+        <button onclick="saveProduct()" id="saveProductBtn" class="btn btn-primary btn-sm">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let categories = [];
+    let currentPage = 0;
+    const LIMIT = 15;
+
+    (async () => {
+      const user = await requireAdmin();
+      if (!user) return;
+      buildAdminLayout('Products', 'Manage your product catalog');
+      document.getElementById('adminUserAvatar').textContent = user.name?.charAt(0)?.toUpperCase() || 'A';
+
+      const content = document.getElementById('adminContent');
+      content.innerHTML = `
+    <div class="admin-card">
+      <div class="admin-toolbar">
+        <div class="admin-search"><span>🔍</span><input type="text" id="searchInput" placeholder="Search products…"></div>
+        <select id="catFilter" class="form-control" style="width:auto;padding:8px 12px;font-size:0.875rem"><option value="">All Categories</option></select>
+        <button onclick="openAddModal()" class="btn btn-primary btn-sm">+ Add Product</button>
+      </div>
+      <div class="admin-card-body">
+        <table class="admin-table">
+          <thead><tr><th>Image</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="productsBody"><tr>${loadingRow(7)}</tr></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination" style="padding:16px"></div>
+    </div>`;
+
+      // Load categories for filter & modal
+      const catData = await get(API.categories);
+      if (catData.success) {
+        categories = catData.categories;
+        const sel = document.getElementById('catFilter');
+        const modalSel = document.getElementById('pCategory');
+        catData.categories.forEach(c => {
+          sel.innerHTML += `<option value="${c.id}">${c.icon} ${c.name}</option>`;
+          modalSel.innerHTML += `<option value="${c.id}">${c.icon} ${c.name}</option>`;
+        });
+      }
+
+      let timer;
+      document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { currentPage = 0; loadProducts(); }, 400); });
+      document.getElementById('catFilter').addEventListener('change', () => { currentPage = 0; loadProducts(); });
+      setupModalClose('productModal');
+      loadProducts();
+    })();
+
+    async function loadProducts() {
+      const search = document.getElementById('searchInput')?.value.trim() || '';
+      const cat = document.getElementById('catFilter')?.value || '';
+      let url = `${API.adminProducts}?limit=${LIMIT}&offset=${currentPage * LIMIT}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (cat) url += `&category_id=${cat}`;
+
+      document.getElementById('productsBody').innerHTML = loadingRow(7);
+      const data = await get(url);
+      if (!data.success) { document.getElementById('productsBody').innerHTML = emptyState('Failed to load.', '❌'); return; }
+      if (!data.products.length) { document.getElementById('productsBody').innerHTML = emptyState('No products found.', '📦'); buildPagination(0); return; }
+
+      document.getElementById('productsBody').innerHTML = data.products.map(p => `
+    <tr>
+      <td><div class="product-img-cell"><img src="${p.image_url || ''}" onerror="this.src='https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100'" style="width:100%;height:100%;object-fit:cover"></div></td>
+      <td><div style="font-weight:600;font-size:0.875rem;max-width:200px">${p.name}</div>${p.is_trending ? '<span class="status-badge status-delivered" style="margin-top:4px">🔥 Trending</span>' : ''}${p.is_featured ? '<span class="status-badge status-processing" style="margin-top:4px;margin-left:4px">⭐ Featured</span>' : ''}</td>
+      <td>${p.category_name}</td>
+      <td><div style="font-weight:700">${formatNPR(p.price)}</div>${p.original_price ? `<div style="font-size:0.75rem;color:var(--gray-400);text-decoration:line-through">${formatNPR(p.original_price)}</div>` : ''}</td>
+      <td><span class="${p.stock < 10 ? 'status-badge status-cancelled' : 'status-badge status-delivered'}">${p.stock}</span></td>
+      <td>${p.stock > 0 ? '<span class="status-badge status-delivered">Active</span>' : '<span class="status-badge status-cancelled">Out of Stock</span>'}</td>
+      <td>
+        <div class="admin-actions">
+          <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "\\'")})'  class="action-btn edit">✏️ Edit</button>
+          <button onclick="deleteProduct(${p.id}, '${p.name.replace(/'/g, "\\\'")}')" class="action-btn delete">🗑️</button>
+        </div>
+      </td>
+    </tr>`).join('');
+      buildPagination(data.total);
+    }
+
+    function buildPagination(total) {
+      const pages = Math.ceil(total / LIMIT);
+      const pg = document.getElementById('pagination');
+      if (pages <= 1) { pg.innerHTML = ''; return; }
+      let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>‹</button>`;
+      for (let i = 0; i < Math.min(pages, 10); i++) html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i + 1}</button>`;
+      html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages - 1 ? 'disabled' : ''}>›</button>`;
+      pg.innerHTML = html;
+    }
+    function goPage(p) { currentPage = p; loadProducts(); }
+
+    function openAddModal() {
+      document.getElementById('modalTitle').textContent = 'Add Product';
+      document.getElementById('editId').value = '';
+      document.getElementById('productForm').reset();
+      openModal('productModal');
+    }
+
+    function editProduct(p) {
+      document.getElementById('modalTitle').textContent = 'Edit Product';
+      document.getElementById('editId').value = p.id;
+      document.getElementById('pName').value = p.name;
+      document.getElementById('pCategory').value = p.category_id;
+      document.getElementById('pPrice').value = p.price;
+      document.getElementById('pOriginalPrice').value = p.original_price || '';
+      document.getElementById('pStock').value = p.stock;
+      document.getElementById('pTrendScore').value = p.trend_score;
+      document.getElementById('pImageUrl').value = p.image_url || '';
+      document.getElementById('pDescription').value = p.description || '';
+      document.getElementById('pTrending').checked = !!p.is_trending;
+      document.getElementById('pFeatured').checked = !!p.is_featured;
+      openModal('productModal');
+    }
+
+    async function saveProduct() {
+      const id = document.getElementById('editId').value;
+      const payload = {
+        name: document.getElementById('pName').value,
+        category_id: document.getElementById('pCategory').value,
+        price: document.getElementById('pPrice').value,
+        original_price: document.getElementById('pOriginalPrice').value || null,
+        stock: document.getElementById('pStock').value,
+        trend_score: document.getElementById('pTrendScore').value,
+        image_url: document.getElementById('pImageUrl').value,
+        description: document.getElementById('pDescription').value,
+        is_trending: document.getElementById('pTrending').checked ? 1 : 0,
+        is_featured: document.getElementById('pFeatured').checked ? 1 : 0,
+      };
+      const btn = document.getElementById('saveProductBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      const r = id ? await put(API.adminProducts, { ...payload, id }) : await post(API.adminProducts, payload);
+      if (r.success) { showToast(id ? 'Product updated!' : 'Product created!'); closeModal('productModal'); loadProducts(); }
+      else showToast(r.error || 'Failed.', 'error');
+      btn.disabled = false; btn.textContent = 'Save Product';
+    }
+
+    async function deleteProduct(id, name) {
+      confirmDelete(`Delete "${name}"? This cannot be undone.`, async () => {
+        const r = await del(API.adminProducts, { id });
+        if (r.success) { showToast('Product deleted.'); loadProducts(); }
+        else showToast(r.error || 'Failed.', 'error');
+      });
+    }
+  </script>
+</body>
+
+</html>

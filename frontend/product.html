@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+  <section class="section" style="padding-top:48px">
+    <div class="container">
+      <div id="loading" style="text-align:center;padding:80px 0">
+        <div
+          style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--black);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px">
+        </div>
+        <p>Loading product…</p>
+      </div>
+      <div id="productDetail" style="display:none">
+        <p style="margin-bottom:24px;font-size:0.875rem"><a href="trends.html"
+            style="color:var(--gray-500);transition:color .2s" onmouseover="this.style.color='var(--black)'"
+            onmouseout="this.style.color='var(--gray-500)'">← Back to Trends</a></p>
+        <div class="product-detail-grid">
+          <div class="product-detail-images">
+            <div class="main-image"><img id="mainImage" src="" alt=""></div>
+          </div>
+          <div class="product-detail-info">
+            <p class="product-category" id="productCategory"></p>
+            <h1 class="product-detail-name" id="productName"></h1>
+            <div class="product-detail-price">
+              <span id="productPrice"></span>
+              <span id="productOriginalPrice"
+                style="font-size:1.1rem;font-weight:400;color:var(--gray-400);text-decoration:line-through"></span>
+              <span id="productDiscount" class="price-discount" style="font-size:0.9rem"></span>
+            </div>
+            <div id="stockBadge" class="stock-badge">In Stock</div>
+            <p id="productDescription" style="margin:20px 0;line-height:1.8;color:var(--gray-600)"></p>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px">
+              <label style="font-weight:600;font-size:0.875rem">Qty:</label>
+              <div class="qty-control">
+                <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                <span class="qty-val" id="qtyVal">1</span>
+                <button class="qty-btn" onclick="changeQty(1)">+</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <button id="addCartBtn" class="btn btn-primary btn-lg" style="flex:1;min-width:160px"
+                onclick="addToCartDetail()">🛒 Add to Cart</button>
+              <button id="wishlistDetailBtn" class="btn btn-outline btn-lg" onclick="toggleWishlistDetail()"
+                title="Wishlist">♡</button>
+            </div>
+            <div
+              style="margin-top:24px;padding:16px;background:var(--gray-100);border-radius:var(--radius-md);font-size:0.85rem;color:var(--gray-500)">
+              <div style="display:flex;gap:8px;margin-bottom:8px">🚚 <span>Free delivery on orders above रू 1,000</span>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:8px">🔄 <span>Easy 7-day returns</span></div>
+              <div style="display:flex;gap:8px">✅ <span>Genuine products guaranteed</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="relatedSection" style="display:none;margin-top:64px">
+        <h2 style="margin-bottom:32px">You may also like</h2>
+        <div id="relatedGrid" class="grid-4"></div>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+  </style>
+  <script src="../js/main.js"></script>
+  <script>
+    let currentProduct = null;
+    let qty = 1;
+
+    function changeQty(d) { qty = Math.max(1, qty + d); document.getElementById('qtyVal').textContent = qty; }
+
+    async function addToCartDetail() {
+      const s = await getSession();
+      if (!s.logged_in) { window.location.href = '/TrendTrackV2/frontend/login.html'; return; }
+      const r = await post(API.cart, { product_id: currentProduct.id, quantity: qty });
+      if (r.success) showToast(`Added ${qty} item(s) to cart! 🛒`);
+      else showToast(r.error || 'Failed.', 'error');
+    }
+
+    async function toggleWishlistDetail() {
+      const s = await getSession();
+      if (!s.logged_in) { window.location.href = '/TrendTrackV2/frontend/login.html'; return; }
+      const btn = document.getElementById('wishlistDetailBtn');
+      const isActive = btn.classList.contains('active');
+      const r = isActive ? await del(API.wishlist, { product_id: currentProduct.id }) : await post(API.wishlist, { product_id: currentProduct.id });
+      if (r.success) { btn.classList.toggle('active'); btn.textContent = btn.classList.contains('active') ? '♥' : '♡'; showToast(isActive ? 'Removed from wishlist' : 'Added to wishlist! ♡'); }
+      else showToast(r.error || 'Failed.', 'error');
+    }
+
+    document.addEventListener('appReady', async () => {
+      const slug = new URLSearchParams(window.location.search).get('slug');
+      if (!slug) { document.getElementById('loading').innerHTML = '<p>Product not found.</p>'; return; }
+
+      const data = await get(`${API.product}?slug=${slug}`);
+      document.getElementById('loading').style.display = 'none';
+
+      if (!data.success) { document.getElementById('loading').textContent = 'Product not found.'; return; }
+
+      currentProduct = data.product;
+      const p = currentProduct;
+      document.title = `${p.name} — TrendTrack`;
+
+      document.getElementById('productDetail').style.display = 'block';
+      document.getElementById('mainImage').src = p.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600';
+      document.getElementById('mainImage').alt = p.name;
+      document.getElementById('productCategory').textContent = p.category_name;
+      document.getElementById('productName').textContent = p.name;
+      document.getElementById('productPrice').textContent = formatNPR(p.price);
+      document.getElementById('productDescription').textContent = p.description;
+
+      if (p.original_price) {
+        document.getElementById('productOriginalPrice').textContent = formatNPR(p.original_price);
+        const d = Math.round((1 - p.price / p.original_price) * 100);
+        document.getElementById('productDiscount').textContent = `-${d}%`;
+      }
+
+      const sb = document.getElementById('stockBadge');
+      if (p.stock <= 0) { sb.textContent = 'Out of Stock'; sb.classList.add('out'); document.getElementById('addCartBtn').disabled = true; }
+      else if (p.stock < 10) { sb.textContent = `Only ${p.stock} left!`; sb.classList.add('low'); }
+      else { sb.textContent = 'In Stock'; }
+
+      if (data.related?.length) {
+        document.getElementById('relatedSection').style.display = 'block';
+        document.getElementById('relatedGrid').innerHTML = data.related.map(r => productCard(r)).join('');
+      }
+    });
+  </script>
+</body>
+
+</html>

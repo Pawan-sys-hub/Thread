@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrendTrack — Discover What's Trending</title>
+  <meta name="description"
+    content="TrendTrack is your ultimate destination for discovering curated trends before they go mainstream.">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+  <section class="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-eyebrow"><span>🔥</span> Live Trend Index — Updated Daily</div>
+        <h1>Track Every<br><span>Trend.</span> Shop<br>What's Next.</h1>
+        <p>Curated trending products across fashion, tech, beauty and lifestyle — discovered before everyone else.</p>
+        <div class="hero-actions">
+          <a href="trends.html" class="btn btn-lg" style="background:white;color:black">Explore Trends</a>
+          <a href="trends.html?trending=1" class="btn btn-lg btn-outline"
+            style="color:white;border-color:rgba(255,255,255,0.3)">🔥 Hot Right Now</a>
+        </div>
+        <div class="hero-stats">
+          <div>
+            <div class="hero-stat-value">100+</div>
+            <div class="hero-stat-label">Trending Products</div>
+          </div>
+          <div>
+            <div class="hero-stat-value">3</div>
+            <div class="hero-stat-label">Categories</div>
+          </div>
+          <div>
+            <div class="hero-stat-value">Daily</div>
+            <div class="hero-stat-label">Trend Updates</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ticker-wrap">
+    <div class="ticker-inner" id="tickerInner">
+      <span class="ticker-item">Fashion</span><span class="ticker-item">Technology</span>
+      <span class="ticker-item">Beauty</span><span class="ticker-item">Home &amp; Living</span>
+      <span class="ticker-item">Sports</span><span class="ticker-item">Books</span>
+      <span class="ticker-item">Fashion</span><span class="ticker-item">Technology</span>
+      <span class="ticker-item">Beauty</span><span class="ticker-item">Home &amp; Living</span>
+      <span class="ticker-item">Sports</span><span class="ticker-item">Books</span>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header section-header-row">
+        <div>
+          <p class="section-eyebrow">Trending Now</p>
+          <h2 class="section-title">🔥 Hot Right Now</h2>
+          <p class="section-subtitle">Products gaining the most traction this week</p>
+        </div>
+        <a href="trends.html?trending=1" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div id="hotGrid" class="grid-4"></div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--black);padding:64px 0;">
+    <div class="container">
+      <div class="section-header" style="margin-bottom:40px">
+        <p class="section-eyebrow" style="color:rgba(255,255,255,0.4)">Categories</p>
+        <h2 class="section-title" style="color:white">Shop by Category</h2>
+      </div>
+      <div id="catGrid" class="grid-3"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header section-header-row">
+        <div>
+          <p class="section-eyebrow">Curated Picks</p>
+          <h2 class="section-title">Featured Trends</h2>
+          <p class="section-subtitle">Hand-picked by our trend analysts</p>
+        </div>
+        <a href="trends.html?featured=1" class="btn btn-outline btn-sm">See All</a>
+      </div>
+      <div id="featuredGrid" class="grid-4"></div>
+    </div>
+  </section>
+
+  <section style="background:var(--gray-100);padding:80px 0;">
+    <div class="container" style="text-align:center">
+      <p class="section-eyebrow">Join TrendTrack</p>
+      <h2 style="margin-bottom:16px">Never Miss a Trend Again</h2>
+      <p style="margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto">Create a free account to save
+        wishlists, track orders and get daily trending updates.</p>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+        <a href="register.html" class="btn btn-primary btn-lg">Get Started Free</a>
+        <a href="trends.html" class="btn btn-outline btn-lg">Browse Trends</a>
+      </div>
+    </div>
+  </section>
+
+  <script src="../js/main.js"></script>
+  <script>
+    document.addEventListener('appReady', async () => {
+      const hotGrid = document.getElementById('hotGrid');
+      hotGrid.innerHTML = skeletonGrid(4, 4);
+      const hotData = await get(`${API.trends}?trending=1&limit=4`);
+      hotGrid.innerHTML = hotData.success && hotData.products.length
+        ? hotData.products.map(p => productCard(p)).join('')
+        : '<p style="color:var(--gray-400)">No trending items right now.</p>';
+
+      const featuredGrid = document.getElementById('featuredGrid');
+      featuredGrid.innerHTML = skeletonGrid(4, 4);
+      const featData = await get(`${API.trends}?featured=1&limit=4`);
+      featuredGrid.innerHTML = featData.success && featData.products.length
+        ? featData.products.map(p => productCard(p)).join('')
+        : '<p style="color:var(--gray-400)">No featured items.</p>';
+
+      const catGrid = document.getElementById('catGrid');
+      const catData = await get(API.categories);
+      if (catData.success) {
+        catGrid.innerHTML = catData.categories.map(c => `
+      <a href="trends.html?category=${c.slug}" style="display:flex;align-items:center;gap:16px;padding:24px;border-radius:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:white;transition:all .25s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+        <span style="font-size:2rem">${c.icon}</span>
+        <div>
+          <div style="font-weight:700;font-size:1.05rem">${c.name}</div>
+          ${c.description ? `<div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-top:2px">${c.description}</div>` : ''}
+        </div>
+      </a>`).join('');
+      }
+    });
+  </script>
+</body>
+
+</html>

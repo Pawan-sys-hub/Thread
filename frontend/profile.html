@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+  <section class="section" style="padding-top:48px">
+    <div class="container">
+      <h1 style="margin-bottom:32px">My Profile</h1>
+      <div class="profile-layout">
+        <div class="profile-sidebar">
+          <div class="profile-avatar" id="avatarCircle">?</div>
+          <div class="profile-name" id="sidebarName">Loading…</div>
+          <div class="profile-email" id="sidebarEmail"></div>
+          <nav class="profile-nav">
+            <a href="#info" onclick="showTab('info',this)" class="active">👤 Profile Info</a>
+            <a href="#password" onclick="showTab('password',this)">🔒 Change Password</a>
+            <a href="orders.html">📦 My Orders</a>
+            <a href="wishlist.html">♡ Wishlist</a>
+            <a href="cart.html">🛒 Cart</a>
+          </nav>
+        </div>
+        <div class="profile-content">
+          <!-- Profile Info Tab -->
+          <div id="tab-info">
+            <h2 style="margin-bottom:24px">Profile Information</h2>
+            <form id="profileForm">
+              <div class="grid-2" style="gap:16px">
+                <div class="form-group">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" id="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone</label>
+                  <input type="tel" id="phone" class="form-control">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" id="email" class="form-control" disabled style="opacity:0.6">
+                <p class="form-hint">Email cannot be changed</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Delivery Address</label>
+                <textarea id="address" class="form-control" rows="3" placeholder="Default delivery address"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Profile Photo URL</label>
+                <input type="url" id="avatar" class="form-control" placeholder="https://…">
+              </div>
+              <button type="submit" id="saveProfileBtn" class="btn btn-primary">Save Changes</button>
+            </form>
+          </div>
+          <!-- Password Tab -->
+          <div id="tab-password" style="display:none">
+            <h2 style="margin-bottom:24px">Change Password</h2>
+            <form id="passwordForm">
+              <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input type="password" id="currentPassword" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password</label>
+                <input type="password" id="newPassword" class="form-control" required minlength="6">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" id="confirmNewPassword" class="form-control" required>
+              </div>
+              <button type="submit" id="changePassBtn" class="btn btn-primary">Update Password</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="../js/main.js"></script>
+  <script>
+    function showTab(tab, link) {
+      document.querySelectorAll('[id^=tab-]').forEach(el => el.style.display = 'none');
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+      document.querySelectorAll('.profile-nav a').forEach(a => a.classList.remove('active'));
+      if (link) link.classList.add('active');
+      return false;
+    }
+
+    async function loadProfile() {
+      await requireAuth();
+      const data = await get(API.profile);
+      if (!data.success) { showToast('Failed to load profile.', 'error'); return; }
+      const u = data.user;
+      document.getElementById('name').value = u.name || '';
+      document.getElementById('phone').value = u.phone || '';
+      document.getElementById('email').value = u.email || '';
+      document.getElementById('address').value = u.address || '';
+      document.getElementById('avatar').value = u.avatar || '';
+      document.getElementById('sidebarName').textContent = u.name;
+      document.getElementById('sidebarEmail').textContent = u.email;
+      if (u.avatar) {
+        document.getElementById('avatarCircle').innerHTML = `<img src="${u.avatar}" onerror="this.parentElement.textContent='👤'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      } else {
+        document.getElementById('avatarCircle').textContent = u.name?.charAt(0)?.toUpperCase() || '?';
+      }
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('saveProfileBtn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      const r = await put(API.profile, {
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        address: document.getElementById('address').value,
+        avatar: document.getElementById('avatar').value,
+      });
+      if (r.success) showToast('Profile updated! ✓');
+      else showToast(r.error || 'Update failed.', 'error');
+      btn.disabled = false; btn.textContent = 'Save Changes';
+    });
+
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newPass = document.getElementById('newPassword').value;
+      const confirm = document.getElementById('confirmNewPassword').value;
+      if (newPass !== confirm) { showToast('Passwords do not match.', 'error'); return; }
+      const btn = document.getElementById('changePassBtn');
+      btn.disabled = true; btn.textContent = 'Updating…';
+      const r = await put(API.profile, {
+        current_password: document.getElementById('currentPassword').value,
+        new_password: newPass,
+        name: document.getElementById('name').value,
+      });
+      if (r.success) { showToast('Password changed!'); document.getElementById('passwordForm').reset(); }
+      else showToast(r.error || 'Failed.', 'error');
+      btn.disabled = false; btn.textContent = 'Update Password';
+    });
+
+    document.addEventListener('appReady', loadProfile);
+  </script>
+</body>
+
+</html>

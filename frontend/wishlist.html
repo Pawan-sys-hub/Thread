@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wishlist — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+  <section class="section" style="padding-top:48px">
+    <div class="container">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px">
+        <div>
+          <h1 style="margin-bottom:4px">My Wishlist</h1>
+          <p id="wishCount">Loading…</p>
+        </div>
+      </div>
+      <div id="emptyWish" style="display:none;text-align:center;padding:72px 0">
+        <div style="font-size:4rem;margin-bottom:16px">♡</div>
+        <h2 style="margin-bottom:12px">Your wishlist is empty</h2>
+        <p style="margin-bottom:24px">Save products you love to buy later.</p>
+        <a href="trends.html" class="btn btn-primary">Browse Trends</a>
+      </div>
+      <div id="wishGrid" class="grid-4 wishlist-grid"></div>
+    </div>
+  </section>
+
+  <script src="../js/main.js"></script>
+  <script>
+    async function loadWishlist() {
+      await requireAuth();
+      const data = await get(API.wishlist);
+      if (!data.success) { showToast('Failed to load wishlist.', 'error'); return; }
+      const items = data.items || [];
+      document.getElementById('wishCount').textContent = `${items.length} saved item${items.length !== 1 ? 's' : ''}`;
+      if (!items.length) { document.getElementById('emptyWish').style.display = 'block'; return; }
+
+      document.getElementById('wishGrid').innerHTML = items.map(p => `
+    <div class="product-card">
+      <div class="product-card-image">
+        <img src="${p.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600'}" alt="${p.name}" loading="lazy" onclick="window.location.href='product.html?slug=${p.slug}'" style="cursor:pointer" onerror="this.src='https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600'">
+        ${p.is_trending ? '<span class="trend-badge">🔥 Trending</span>' : ''}
+        <button class="wishlist-btn active" onclick="removeFromWish(${p.product_id}, this)" title="Remove">♥</button>
+        <div class="product-card-overlay">
+          <button class="quick-btn" onclick="quickAddToCart(${p.product_id})">+ Add to Cart</button>
+        </div>
+      </div>
+      <div class="product-card-body">
+        <p class="product-category">${p.category_name}</p>
+        <h3 class="product-name" onclick="window.location.href='product.html?slug=${p.slug}'" style="cursor:pointer">${p.name}</h3>
+        <div class="product-price">
+          <span class="price-current">${formatNPR(p.price)}</span>
+          ${p.original_price ? `<span class="price-original">${formatNPR(p.original_price)}</span>` : ''}
+        </div>
+        <p style="font-size:0.72rem;color:var(--gray-400);margin-top:6px">Added ${formatDate(p.created_at)}</p>
+      </div>
+    </div>`).join('');
+    }
+
+    async function removeFromWish(productId, btn) {
+      const r = await del(API.wishlist, { product_id: productId });
+      if (r.success) {
+        btn.closest('.product-card').style.opacity = '0';
+        btn.closest('.product-card').style.transform = 'scale(0.95)';
+        btn.closest('.product-card').style.transition = 'all .3s';
+        setTimeout(() => { btn.closest('.product-card').remove(); showToast('Removed from wishlist.'); }, 300);
+      } else showToast(r.error || 'Failed.', 'error');
+    }
+
+    document.addEventListener('appReady', loadWishlist);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+  <section class="section" style="padding-top:48px">
+    <div class="container">
+      <h1 style="margin-bottom:8px">Shopping Cart</h1>
+      <p id="cartCount" style="margin-bottom:32px">Loading…</p>
+
+      <div id="emptyCart" style="display:none;text-align:center;padding:80px 0">
+        <div style="font-size:4rem;margin-bottom:16px">🛒</div>
+        <h2 style="margin-bottom:12px">Your cart is empty</h2>
+        <p style="margin-bottom:24px">Add some trending products to get started!</p>
+        <a href="trends.html" class="btn btn-primary">Browse Trends</a>
+      </div>
+
+      <div id="cartLayout" class="cart-layout" style="display:none">
+        <div>
+          <div id="cartItems"></div>
+          <div style="margin-top:16px;display:flex;gap:12px">
+            <button onclick="clearCart()" class="btn btn-ghost btn-sm">🗑️ Clear Cart</button>
+            <a href="trends.html" class="btn btn-outline btn-sm">← Continue Shopping</a>
+          </div>
+        </div>
+        <div class="order-summary">
+          <h3 style="margin-bottom:20px">Order Summary</h3>
+          <div class="summary-row"><span>Subtotal</span><span id="subtotal">—</span></div>
+          <div class="summary-row"><span>Delivery</span><span>रू 100</span></div>
+          <div class="summary-row total"><span>Total</span><span id="grandTotal">—</span></div>
+          <a href="checkout.html" id="checkoutBtn" class="btn btn-primary btn-full" style="margin-top:20px">Proceed to
+            Checkout →</a>
+          <p style="text-align:center;font-size:0.78rem;color:var(--gray-400);margin-top:12px">Secure checkout • eSewa /
+            Khalti / COD</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="../js/main.js"></script>
+  <script>
+    let cartItems = [];
+
+    async function loadCart() {
+      const user = await requireAuth();
+      if (!user) return;
+
+      const data = await get(API.cart);
+      if (!data.success) { showToast('Failed to load cart.', 'error'); return; }
+
+      cartItems = data.items || [];
+      const count = document.getElementById('cartCount');
+      if (!cartItems.length) {
+        count.textContent = '0 items';
+        document.getElementById('emptyCart').style.display = 'block';
+        return;
+      }
+      count.textContent = `${cartItems.length} item${cartItems.length > 1 ? 's' : ''}`;
+      document.getElementById('cartLayout').style.display = 'grid';
+      renderCartItems();
+    }
+
+    function renderCartItems() {
+      const container = document.getElementById('cartItems');
+      let total = 0;
+      container.innerHTML = cartItems.map(item => {
+        total += item.price * item.quantity;
+        return `
+    <div class="cart-item" id="cart-item-${item.product_id}">
+      <div class="cart-item-img">
+        <img src="${item.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400'}" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400'" style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <div>
+        <a href="product.html?slug=${item.slug}" style="font-weight:600;font-size:0.95rem;color:var(--black)">${item.name}</a>
+        <p style="font-size:0.8rem;color:var(--gray-400);margin-top:2px">${formatNPR(item.price)} each</p>
+        <div class="qty-control" style="margin-top:8px">
+          <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.quantity - 1})">−</button>
+          <span class="qty-val">${item.quantity}</span>
+          <button class="qty-btn" onclick="updateQty(${item.product_id}, ${item.quantity + 1})">+</button>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <p style="font-weight:700;font-size:1rem;color:var(--black)">${formatNPR(item.price * item.quantity)}</p>
+        <button onclick="removeItem(${item.product_id})" style="font-size:0.78rem;color:var(--red);margin-top:8px;cursor:pointer;border:none;background:none">Remove</button>
+      </div>
+    </div>`;
+      }).join('');
+
+      document.getElementById('subtotal').textContent = formatNPR(total);
+      document.getElementById('grandTotal').textContent = formatNPR(total + 100);
+    }
+
+    async function updateQty(productId, newQty) {
+      if (newQty < 1) { removeItem(productId); return; }
+      const r = await put(API.cart, { product_id: productId, quantity: newQty });
+      if (r.success) {
+        const item = cartItems.find(i => i.product_id === productId);
+        if (item) { item.quantity = newQty; renderCartItems(); }
+      } else showToast(r.error || 'Update failed.', 'error');
+    }
+
+    async function removeItem(productId) {
+      const r = await del(API.cart, { product_id: productId });
+      if (r.success) {
+        cartItems = cartItems.filter(i => i.product_id !== productId);
+        if (!cartItems.length) { document.getElementById('cartLayout').style.display = 'none'; document.getElementById('emptyCart').style.display = 'block'; }
+        else renderCartItems();
+        showToast('Item removed.');
+      } else showToast(r.error || 'Failed.', 'error');
+    }
+
+    async function clearCart() {
+      if (!confirm('Clear all items from cart?')) return;
+      const r = await del(API.cart, {});
+      if (r.success) { cartItems = []; document.getElementById('cartLayout').style.display = 'none'; document.getElementById('emptyCart').style.display = 'block'; showToast('Cart cleared.'); }
+      else showToast(r.error || 'Failed.', 'error');
+    }
+
+    document.addEventListener('appReady', loadCart);
+  </script>
+</body>
+
+</html>

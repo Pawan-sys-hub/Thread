@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users — Admin | TrendTrack</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <style>
+    body {
+      margin: 0;
+      background: var(--gray-100)
+    }
+  </style>
+</head>
+
+<body data-page="users">
+  <script src="../../js/main.js"></script>
+  <script src="../../js/admin.js"></script>
+
+  <script>
+    let currentPage = 0;
+    const LIMIT = 20;
+
+    (async () => {
+      const user = await requireAdmin();
+      if (!user) return;
+      buildAdminLayout('Users', 'Manage customer accounts');
+      document.getElementById('adminUserAvatar').textContent = user.name?.charAt(0)?.toUpperCase() || 'A';
+
+      document.getElementById('adminContent').innerHTML = `
+    <div class="admin-card">
+      <div class="admin-toolbar">
+        <div class="admin-search"><span>🔍</span><input type="text" id="searchInput" placeholder="Search by name or email…"></div>
+        <select id="roleFilter" class="form-control" style="width:auto;padding:8px 12px;font-size:0.875rem">
+          <option value="">All Roles</option>
+          <option value="customer">Customers</option>
+          <option value="admin">Admins</option>
+        </select>
+        <button onclick="loadUsers()" class="btn btn-ghost btn-sm">🔄 Refresh</button>
+      </div>
+      <div class="admin-card-body">
+        <table class="admin-table">
+          <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="usersBody"><tr>${loadingRow(7)}</tr></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination" style="padding:16px"></div>
+    </div>
+
+    <div class="admin-card" style="margin-top:20px">
+      <div class="admin-card-header"><h3 class="admin-card-title">ℹ️ About User Management</h3></div>
+      <div style="padding:20px;font-size:0.875rem;color:var(--gray-500);display:flex;flex-direction:column;gap:8px">
+        <p>• You can activate or deactivate customer accounts.</p>
+        <p>• Deactivated users cannot log in or place orders.</p>
+        <p>• Admin accounts cannot be deactivated from this panel.</p>
+        <p>• All activity is logged for audit purposes.</p>
+      </div>
+    </div>`;
+
+      let timer;
+      document.getElementById('searchInput').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { currentPage = 0; loadUsers(); }, 400); });
+      document.getElementById('roleFilter').addEventListener('change', () => { currentPage = 0; loadUsers(); });
+      loadUsers();
+    })();
+
+    async function loadUsers() {
+      const search = document.getElementById('searchInput')?.value.trim() || '';
+      const role = document.getElementById('roleFilter')?.value || '';
+      let url = `${API.adminUsers}?limit=${LIMIT}&offset=${currentPage * LIMIT}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (role) url += `&role=${role}`;
+
+      document.getElementById('usersBody').innerHTML = loadingRow(7);
+      const data = await get(url);
+      if (!data.success) { document.getElementById('usersBody').innerHTML = emptyState('Failed to load.', '❌'); return; }
+      if (!data.users.length) { document.getElementById('usersBody').innerHTML = emptyState('No users found.', '👥'); buildPagination(0); return; }
+
+      document.getElementById('usersBody').innerHTML = data.users.map(u => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--black);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">${u.name?.charAt(0)?.toUpperCase() || '?'}</div>
+          <span style="font-weight:600;font-size:0.875rem">${u.name}</span>
+        </div>
+      </td>
+      <td style="font-size:0.85rem;color:var(--gray-600)">${u.email}</td>
+      <td style="font-size:0.85rem;color:var(--gray-500)">${u.phone || '—'}</td>
+      <td>${u.role === 'admin' ? '<span class="status-badge status-processing">🛡️ Admin</span>' : '<span class="status-badge" style="background:var(--gray-100);color:var(--gray-700)">Customer</span>'}</td>
+      <td>${u.is_active ? '<span class="status-badge status-active">Active</span>' : '<span class="status-badge status-inactive">Inactive</span>'}</td>
+      <td style="font-size:0.8rem;color:var(--gray-400)">${formatDate(u.created_at)}</td>
+      <td>
+        ${u.role !== 'admin' ? `
+        <div class="admin-actions">
+          ${u.is_active
+            ? `<button onclick="toggleUser(${u.id}, 0, '${u.name.replace(/'/g, "\\\'")}')" class="action-btn delete">🚫 Deactivate</button>`
+            : `<button onclick="toggleUser(${u.id}, 1, '${u.name.replace(/'/g, "\\\'")}')" class="action-btn edit">✅ Activate</button>`}
+        </div>` : '<span style="font-size:0.78rem;color:var(--gray-300)">—</span>'}
+      </td>
+    </tr>`).join('');
+      buildPagination(data.total);
+    }
+
+    function buildPagination(total) {
+      const pages = Math.ceil(total / LIMIT);
+      const pg = document.getElementById('pagination');
+      if (pages <= 1) { pg.innerHTML = ''; return; }
+      let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>‹</button>`;
+      for (let i = 0; i < Math.min(pages, 10); i++) html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i + 1}</button>`;
+      html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages - 1 ? 'disabled' : ''}>›</button>`;
+      pg.innerHTML = html;
+    }
+    function goPage(p) { currentPage = p; loadUsers(); }
+
+    async function toggleUser(id, isActive, name) {
+      const action = isActive ? 'Activate' : 'Deactivate';
+      if (!confirm(`${action} "${name}"?`)) return;
+      const r = await put(API.adminUsers, { id, is_active: isActive });
+      if (r.success) { showToast(`User ${isActive ? 'activated' : 'deactivated'}.`); loadUsers(); }
+      else showToast(r.error || 'Failed.', 'error');
+    }
+  </script>
+</body>
+
+</html>

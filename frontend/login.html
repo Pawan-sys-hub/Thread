@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="../assets/logo.png" alt="TrendTrack" style="height:32px" onerror="this.style.display='none'">
+      TrendTrack
+    </div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account to continue shopping.</p>
+
+    <div id="formError" class="form-error show" style="display:none;margin-bottom:16px;padding:12px;background:#fee2e2;border-radius:8px;color:#991b1b;font-size:0.875rem"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input type="email" id="email" class="form-control" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="Your password" required autocomplete="current-password">
+      </div>
+      <button type="submit" id="loginBtn" class="btn btn-primary btn-full" style="margin-top:8px">Sign In</button>
+    </form>
+
+    <div class="auth-divider">or</div>
+
+    <div style="background:var(--gray-100);border-radius:12px;padding:16px;margin-bottom:16px">
+      <p style="font-size:0.78rem;font-weight:600;color:var(--gray-500);margin-bottom:10px;text-align:center">Demo Credentials</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="fillDemo('admin@trendtrack.com','password')" class="btn btn-outline btn-sm">🛡️ Admin Demo</button>
+        <button onclick="fillDemo('demo@customer.com','password')" class="btn btn-ghost btn-sm">👤 Customer Demo</button>
+      </div>
+    </div>
+
+    <p class="auth-footer">Don't have an account? <a href="register.html">Create one free</a></p>
+  </div>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+// If already logged in, redirect
+(async () => {
+  const s = await getSession();
+  if (s.logged_in) {
+    window.location.href = s.role === 'admin' ? '/TrendTrackV2/frontend/admin/index.html' : '/TrendTrackV2/frontend/index.html';
+  }
+})();
+
+function fillDemo(email, pass) {
+  document.getElementById('email').value = email;
+  document.getElementById('password').value = pass;
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('formError');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  err.style.display = 'none';
+
+  const r = await post(API.login, {
+    email: document.getElementById('email').value,
+    password: document.getElementById('password').value,
+  });
+
+  if (r.success) {
+    clearSession();
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect') || r.redirect || '/TrendTrackV2/frontend/index.html';
+    window.location.href = redirect;
+  } else {
+    err.textContent = r.error || 'Login failed.';
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+});
+</script>
+</body>
+</html>

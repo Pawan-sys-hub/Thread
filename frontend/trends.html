@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trends — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+  <section style="padding:40px 0 24px;background:var(--gray-100)">
+    <div class="container">
+      <h1 style="font-size:2rem;margin-bottom:8px">All Trends</h1>
+      <p>Browse curated trending products across all categories</p>
+    </div>
+  </section>
+
+  <section
+    style="padding:24px 0;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:68px;z-index:50;">
+    <div class="container">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div
+          style="display:flex;align-items:center;gap:8px;background:var(--gray-100);border-radius:var(--radius-sm);padding:8px 16px;flex:1;min-width:200px;max-width:380px">
+          <span>🔍</span>
+          <input type="text" id="searchInput" placeholder="Search products…"
+            style="border:none;background:none;outline:none;font-size:0.875rem;width:100%">
+        </div>
+        <select id="categoryFilter" class="form-control" style="width:auto;padding:8px 14px">
+          <option value="">All Categories</option>
+        </select>
+        <select id="sortFilter" class="form-control" style="width:auto;padding:8px 14px">
+          <option value="">Sort: Trending</option>
+          <option value="trending">🔥 Most Trending</option>
+          <option value="featured">⭐ Featured</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+        </select>
+        <div style="display:flex;gap:6px">
+          <button id="btnTrending" onclick="setFilter('trending')" class="btn btn-outline btn-sm">🔥 Trending</button>
+          <button id="btnFeatured" onclick="setFilter('featured')" class="btn btn-outline btn-sm">⭐ Featured</button>
+          <button onclick="clearFilters()" class="btn btn-ghost btn-sm">Clear</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding:40px 0">
+    <div class="container">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <p id="resultsCount" style="font-size:0.875rem;color:var(--gray-400)">Loading…</p>
+      </div>
+      <div id="productGrid" class="grid-4"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </section>
+
+  <script src="../js/main.js"></script>
+  <script>
+    let currentPage = 0;
+    const LIMIT = 12;
+    let allFilters = {};
+
+    function getParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        category: params.get('category') || '',
+        trending: params.get('trending') || '',
+        featured: params.get('featured') || '',
+        search: params.get('search') || '',
+      };
+    }
+
+    function setFilter(type) {
+      currentPage = 0;
+      const params = new URLSearchParams(window.location.search);
+      if (type === 'trending') { params.set('trending', '1'); params.delete('featured'); }
+      if (type === 'featured') { params.set('featured', '1'); params.delete('trending'); }
+      history.replaceState({}, '', `?${params}`);
+      loadProducts();
+    }
+
+    function clearFilters() {
+      currentPage = 0;
+      history.replaceState({}, '', window.location.pathname);
+      document.getElementById('searchInput').value = '';
+      document.getElementById('categoryFilter').value = '';
+      loadProducts();
+    }
+
+    async function loadProducts() {
+      const p = getParams();
+      const search = document.getElementById('searchInput').value.trim() || p.search;
+      const category = document.getElementById('categoryFilter').value || p.category;
+      const sort = document.getElementById('sortFilter').value;
+
+      let url = `${API.trends}?limit=${LIMIT}&offset=${currentPage * LIMIT}`;
+      if (category) url += `&category=${category}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (sort === 'trending' || p.trending) url += `&trending=1`;
+      if (sort === 'featured' || p.featured) url += `&featured=1`;
+
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = skeletonGrid(LIMIT, 4);
+
+      const data = await get(url);
+      const count = document.getElementById('resultsCount');
+
+      if (!data.success) { grid.innerHTML = '<p style="color:var(--red)">Failed to load products.</p>'; return; }
+
+      count.textContent = `${data.total} product${data.total !== 1 ? 's' : ''} found`;
+
+      if (!data.products.length) {
+        grid.innerHTML = '<div style="text-align:center;padding:64px;color:var(--gray-400)"><div style="font-size:3rem;margin-bottom:16px">🔍</div><p>No products found. Try a different filter.</p></div>';
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+
+      let products = [...data.products];
+      if (sort === 'price_asc') products.sort((a, b) => a.price - b.price);
+      if (sort === 'price_desc') products.sort((a, b) => b.price - a.price);
+
+      grid.innerHTML = products.map(p => productCard(p)).join('');
+      buildPagination(data.total);
+    }
+
+    function buildPagination(total) {
+      const pages = Math.ceil(total / LIMIT);
+      const pg = document.getElementById('pagination');
+      if (pages <= 1) { pg.innerHTML = ''; return; }
+      let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>‹</button>`;
+      for (let i = 0; i < pages; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i + 1}</button>`;
+      }
+      html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pages - 1 ? 'disabled' : ''}>›</button>`;
+      pg.innerHTML = html;
+    }
+
+    function goPage(p) { currentPage = p; loadProducts(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    document.addEventListener('appReady', async () => {
+      const catData = await get(API.categories);
+      if (catData.success) {
+        const sel = document.getElementById('categoryFilter');
+        catData.categories.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c.slug; o.textContent = `${c.icon} ${c.name}`;
+          sel.appendChild(o);
+        });
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('category')) sel.value = params.get('category');
+      }
+
+      document.getElementById('searchInput').value = new URLSearchParams(window.location.search).get('search') || '';
+
+      let searchTimer;
+      document.getElementById('searchInput').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { currentPage = 0; loadProducts(); }, 400);
+      });
+      document.getElementById('categoryFilter').addEventListener('change', () => { currentPage = 0; loadProducts(); });
+      document.getElementById('sortFilter').addEventListener('change', () => { currentPage = 0; loadProducts(); });
+
+      loadProducts();
+    });
+  </script>
+</body>
+
+</html>
