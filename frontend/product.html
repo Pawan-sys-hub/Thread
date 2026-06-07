@@ -21,35 +21,39 @@
         <p style="margin-bottom:24px;font-size:0.875rem"><a href="trends.html"
             style="color:var(--gray-500);transition:color .2s" onmouseover="this.style.color='var(--black)'"
             onmouseout="this.style.color='var(--gray-500)'">← Back to Trends</a></p>
-        <div class="product-detail-grid">
+        <div class="product-detail-grid" style="margin-top:20px;align-items:center">
           <div class="product-detail-images">
-            <div class="main-image"><img id="mainImage" src="" alt=""></div>
-          </div>
-          <div class="product-detail-info">
-            <p class="product-category" id="productCategory"></p>
-            <h1 class="product-detail-name" id="productName"></h1>
-            <div class="product-detail-price">
-              <span id="productPrice"></span>
-              <span id="productOriginalPrice"
-                style="font-size:1.1rem;font-weight:400;color:var(--gray-400);text-decoration:line-through"></span>
-              <span id="productDiscount" class="price-discount" style="font-size:0.9rem"></span>
+            <div class="main-image" style="box-shadow:var(--shadow-lg);border:none;border-radius:var(--radius-xl)">
+              <img id="mainImage" src="" alt="" style="width:100%;height:100%;object-fit:cover">
             </div>
-            <div id="stockBadge" class="stock-badge">In Stock</div>
-            <p id="productDescription" style="margin:20px 0;line-height:1.8;color:var(--gray-600)"></p>
-            <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px">
-              <label style="font-weight:600;font-size:0.875rem">Qty:</label>
-              <div class="qty-control">
-                <button class="qty-btn" onclick="changeQty(-1)">−</button>
-                <span class="qty-val" id="qtyVal">1</span>
-                <button class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+          <div class="product-detail-info" style="padding:0 20px">
+            <p class="product-category" id="productCategory" style="margin-bottom:12px;display:inline-block;padding:4px 12px;background:var(--gray-100);border-radius:var(--radius-full)"></p>
+            <h1 class="product-detail-name" id="productName" style="margin-bottom:16px;font-size:2.8rem;letter-spacing:-0.02em"></h1>
+            <div class="product-detail-price" style="margin-bottom:24px">
+              <span id="productPrice" style="font-size:2rem;color:var(--black)"></span>
+              <span id="productOriginalPrice" style="font-size:1.2rem;font-weight:400;color:var(--gray-400);text-decoration:line-through"></span>
+              <span id="productDiscount" class="price-discount" style="font-size:1rem;font-weight:700"></span>
+            </div>
+            <div id="stockBadge" class="stock-badge" style="margin-bottom:28px">In Stock</div>
+            <p id="productDescription" style="margin-bottom:32px;font-size:1.05rem;line-height:1.8;color:var(--gray-600)"></p>
+            
+            <div style="display:flex;gap:16px;align-items:center;margin-bottom:32px">
+              <label style="font-weight:700;font-size:0.9rem;text-transform:uppercase;letter-spacing:0.05em">Quantity</label>
+              <div class="qty-control" style="background:var(--gray-100);padding:4px;border-radius:var(--radius-full)">
+                <button class="qty-btn" onclick="changeQty(-1)" style="width:36px;height:36px;background:var(--white);border-radius:50%;box-shadow:var(--shadow-sm)">−</button>
+                <span class="qty-val" id="qtyVal" style="width:40px;text-align:center;font-weight:700">1</span>
+                <button class="qty-btn" onclick="changeQty(1)" style="width:36px;height:36px;background:var(--white);border-radius:50%;box-shadow:var(--shadow-sm)">+</button>
               </div>
             </div>
-            <div style="display:flex;gap:12px;flex-wrap:wrap">
-              <button id="addCartBtn" class="btn btn-primary btn-lg" style="flex:1;min-width:160px"
+
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <button id="addCartBtn" class="btn btn-primary btn-lg" style="flex:1;min-width:200px;border-radius:var(--radius-lg);padding:18px"
                 onclick="addToCartDetail()">🛒 Add to Cart</button>
-              <button id="wishlistDetailBtn" class="btn btn-outline btn-lg" onclick="toggleWishlistDetail()"
-                title="Wishlist">♡</button>
+              <button id="wishlistDetailBtn" class="btn btn-outline btn-lg" style="width:60px;height:60px;padding:0;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center" 
+                onclick="toggleWishlistDetail()" title="Wishlist">♡</button>
             </div>
+
             <div
               style="margin-top:24px;padding:16px;background:var(--gray-100);border-radius:var(--radius-md);font-size:0.85rem;color:var(--gray-500)">
               <div style="display:flex;gap:8px;margin-bottom:8px">🚚 <span>Free delivery on orders above रू 1,000</span>

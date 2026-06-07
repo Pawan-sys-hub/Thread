@@ -386,21 +386,25 @@ async function initiateEsewaPayment(orderId, amount) {
   const r = await post(`${API.esewa}?action=initiate`, { order_id: orderId, amount: amount });
   if (!r.success) { showToast(r.error || 'eSewa initiation failed.', 'error'); return; }
 
-  // Build and submit eSewa form
+  // Build and submit eSewa v2 form
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = r.pay_url;
+
   const fields = {
-    amt: r.amount,
-    txAmt: r.tax_amount,
-    psc: r.service_charge,
-    pdc: r.delivery_charge,
-    tAmt: r.total_amount,
-    pid: r.product_id,
-    scd: r.merchant_code,
-    su: r.success_url,
-    fu: r.failure_url,
+    amount: r.amount,
+    tax_amount: r.tax_amount,
+    product_service_charge: r.product_service_charge,
+    product_delivery_charge: r.product_delivery_charge,
+    total_amount: r.total_amount,
+    transaction_uuid: r.transaction_uuid,
+    product_code: r.product_code,
+    success_url: r.success_url,
+    failure_url: r.failure_url,
+    signed_field_names: r.signed_field_names,
+    signature: r.signature
   };
+
   Object.entries(fields).forEach(([k, v]) => {
     const inp = document.createElement('input');
     inp.type = 'hidden'; inp.name = k; inp.value = v;
@@ -410,12 +414,20 @@ async function initiateEsewaPayment(orderId, amount) {
   form.submit();
 }
 
+
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', async () => {
-  if (document.body.classList.contains('admin-page') || window.location.pathname.includes('/frontend/admin/')) {
+  // Robust check for admin pages
+  const isAdmin = document.body.classList.contains('admin-page') ||
+    window.location.pathname.includes('/admin/') ||
+    document.querySelector('aside.admin-sidebar');
+
+  if (isAdmin) {
+    document.body.classList.add('admin-page'); // Double check
     document.dispatchEvent(new Event('appReady'));
     return;
   }
+
 
   await buildNavbar();
   buildFooter();

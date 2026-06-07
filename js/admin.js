@@ -53,21 +53,28 @@ function buildAdminLayout(pageTitle, pageSubtitle = '') {
     <header class="admin-topbar">
       <div class="admin-topbar-left">
         <button class="admin-sidebar-toggle" id="adminSidebarToggle" onclick="toggleAdminSidebar()">☰</button>
-        <div>
+        <div class="admin-title-area">
           <h1 id="pageTitle">${pageTitle}</h1>
           <p id="pageSubtitle">${pageSubtitle}</p>
         </div>
       </div>
+      <div class="admin-topbar-center">
+        <div class="admin-global-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Search orders, products, users…" onkeyup="handleAdminGlobalSearch(this.value)">
+        </div>
+      </div>
       <div class="admin-topbar-right">
-        <a href="/TrendTrackV2/frontend/index.html" class="admin-view-store-btn">
-          <span>🏪</span> View Store
+        <a href="/TrendTrackV2/frontend/index.html" class="admin-view-store-btn" title="Go to Frontend">
+          <span>🏪</span> <span class="hide-mobile">View Store</span>
         </a>
         <div class="admin-user-pill">
           <div class="admin-user-avatar" id="adminUserAvatar">A</div>
-          <span class="admin-user-name" id="adminUserName">Admin</span>
+          <span class="admin-user-name hide-mobile" id="adminUserName">Admin</span>
         </div>
       </div>
     </header>
+
     <div class="admin-content" id="adminContent"></div>
   </div>`;
 
@@ -133,7 +140,26 @@ function loadingRow(cols = 5) {
   return `<tr><td colspan="${cols}" style="padding:40px;text-align:center;color:var(--gray-400)"><div style="display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--black);border-radius:50%;animation:spin .8s linear infinite"></div><p style="margin-top:12px;font-size:0.85rem">Loading…</p></td></tr>`;
 }
 
+// ---- Global Search ----
+function handleAdminGlobalSearch(query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return;
+  // This is a simple implementation that can be expanded
+  console.log('Admin searching for:', q);
+
+  // Example: If on products page, filter the table
+  const table = document.querySelector('.admin-table tbody');
+  if (table) {
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+}
+
 // Spin animation injected once
 const _spinStyle = document.createElement('style');
 _spinStyle.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
 document.head.appendChild(_spinStyle);
+

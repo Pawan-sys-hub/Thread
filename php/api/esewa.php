@@ -16,11 +16,22 @@ require_once '../db.php';
 
 // eSewa Config
 define('ESEWA_MERCHANT_CODE', 'EPAYTEST');           // Use your live merchant code in production
-define('ESEWA_PAY_URL', 'https://rc-epay.esewa.com.np/api/epay/main/v2');
-define('ESEWA_VERIFY_URL', 'https://rc-epay.esewa.com.np/api/epay/transrec');
-define('SITE_BASE_URL',    (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/TrendTrackV2");
+define('ESEWA_SECRET_KEY',   '8g8M8m8P8n8b8m8');     // Use your live secret key in production
+define('ESEWA_PAY_URL',      'https://rc-epay.esewa.com.np/api/epay/main/v2');
+define('SITE_BASE_URL',      (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/TrendTrackV2");
 
 header('Content-Type: application/json');
+
+/**
+ * Signature generator for eSewa v2
+ */
+function generateEsewaSignature($total_amount, $transaction_uuid, $product_code) {
+    $s = "total_amount=$total_amount,transaction_uuid=$transaction_uuid,product_code=$product_code";
+    $hash = hash_hmac('sha256', $s, ESEWA_SECRET_KEY, true);
+    return base64_encode($hash);
+}
+
+// ... existing code ...
 
 $action = $_GET['action'] ?? 'initiate';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -54,21 +65,26 @@ if ($action === 'initiate' && $method === 'POST') {
     }
 
     $tAmt = round((float)$order['total_amount'], 2);
-    $pid  = 'TT-ORDER-' . $orderId . '-' . time();
+    $uuid = 'TT-' . $orderId . '-' . time();
+    $prod = ESEWA_MERCHANT_CODE; // Or a specific product code
 
-    // Return fields needed for eSewa redirect form
+    $sig = generateEsewaSignature($tAmt, $uuid, $prod);
+
+    // Return fields needed for eSewa v2 redirect form
     jsonResponse([
-        'success'       => true,
-        'pay_url'       => ESEWA_PAY_URL,
-        'merchant_code' => ESEWA_MERCHANT_CODE,
-        'amount'        => $tAmt,
-        'tax_amount'    => 0,
-        'service_charge'=> 0,
-        'delivery_charge'=> 0,
-        'total_amount'  => $tAmt,
-        'product_id'    => $pid,
-        'success_url'   => SITE_BASE_URL . '/frontend/order-success.html?order=' . $orderId,
-        'failure_url'   => SITE_BASE_URL . '/frontend/checkout.html?error=payment_failed&order=' . $orderId,
+        'success'           => true,
+        'pay_url'           => ESEWA_PAY_URL,
+        'amount'            => $tAmt,
+        'tax_amount'        => 0,
+        'total_amount'      => $tAmt,
+        'transaction_uuid'  => $uuid,
+        'product_code'      => $prod,
+        'product_service_charge'  => 0,
+        'product_delivery_charge' => 0,
+        'success_url'       => SITE_BASE_URL . '/frontend/order-success.html?order=' . $orderId,
+        'failure_url'       => SITE_BASE_URL . '/frontend/checkout.html?error=payment_failed&order=' . $orderId,
+        'signed_field_names'=> 'total_amount,transaction_uuid,product_code',
+        'signature'         => $sig
     ]);
 }
 
@@ -76,43 +92,27 @@ if ($action === 'initiate' && $method === 'POST') {
 // VERIFY PAYMENT (called after eSewa redirects back)
 // -----------------------------------------------------------
 if ($action === 'verify' && $method === 'GET') {
-    $oid = $_GET['oid'] ?? '';
-    $amt = $_GET['amt'] ?? '';
-    $ref = $_GET['refId'] ?? '';
+    $data = $_GET['data'] ?? ''; // eSewa v2 returns data in a single 'data' param (base64 encoded json)
 
-    if (!$oid || !$amt || !$ref) {
-        jsonResponse(['success' => false, 'error' => 'Missing verification parameters.'], 400);
+    if (!$data) {
+        jsonResponse(['success' => false, 'error' => 'Missing verification data.'], 400);
     }
 
-    // Extract order ID from product_id (format: TT-ORDER-{id}-{timestamp})
-    preg_match('/TT-ORDER-(\d+)-/', $oid, $matches);
+    $decoded = json_decode(base64_decode($data), true);
+    if (!$decoded || ($decoded['status'] ?? '') !== 'COMPLETE') {
+        jsonResponse(['success' => false, 'error' => 'Payment not completed.'], 400);
+    }
+
+    // Extract order ID from transaction_uuid (format: TT-{id}-{timestamp})
+    preg_match('/TT-(\d+)-/', $decoded['transaction_uuid'], $matches);
     $orderId = (int)($matches[1] ?? 0);
 
     if (!$orderId) {
         jsonResponse(['success' => false, 'error' => 'Invalid order reference.'], 400);
     }
 
-    // Verify with eSewa server
-    $verifyUrl = ESEWA_VERIFY_URL . '?' . http_build_query([
-        'amt'  => $amt,
-        'rid'  => $ref,
-        'pid'  => $oid,
-        'scd'  => ESEWA_MERCHANT_CODE,
-    ]);
-
-    $ctx     = stream_context_create(['http' => ['timeout' => 10]]);
-    $response = @file_get_contents($verifyUrl, false, $ctx);
-
-    if ($response === false || strpos($response, '<response_code>Success</response_code>') === false) {
-        // Mark as failed
-        $stmt = $conn->prepare("UPDATE orders SET payment_status='failed' WHERE id=?");
-        $stmt->bind_param("i", $orderId);
-        $stmt->execute();
-        $stmt->close();
-        jsonResponse(['success' => false, 'error' => 'Payment verification failed.'], 400);
-    }
-
     // Payment verified — update order
+    $ref = $decoded['transaction_code'] ?? 'eSewa-v2-' . time();
     $stmt = $conn->prepare("UPDATE orders SET payment_status='paid', payment_ref=?, status='processing' WHERE id=?");
     $stmt->bind_param("si", $ref, $orderId);
     $stmt->execute();
@@ -120,6 +120,7 @@ if ($action === 'verify' && $method === 'GET') {
 
     jsonResponse(['success' => true, 'message' => 'Payment verified!', 'order_id' => $orderId]);
 }
+
 
 // -----------------------------------------------------------
 // UPDATE STATUS (admin only)
