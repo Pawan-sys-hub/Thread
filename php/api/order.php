@@ -92,14 +92,12 @@ if ($method === 'POST') {
         }
     }
 
-    $total = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cartItems));
+    $deliveryFee = 100;
+    $subtotal = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $cartItems));
+    $total = $subtotal + $deliveryFee;
     $paymentStatus = ($payment === 'esewa') ? 'unpaid' : 'unpaid'; // always start unpaid; eSewa verifies separately
 
     // Create order
-    $oStmt = $conn->prepare("INSERT INTO orders (user_id, total_amount, shipping_address, phone, payment_method, payment_status, notes) VALUES (?,?,?,?,?,?,?)");
-    $oStmt->bind_param("idssss s", $userId, $total, $address, $phone, $payment, $paymentStatus, $notes);
-
-    // Fix bind — use separate call
     $oStmt = $conn->prepare("INSERT INTO orders (user_id, total_amount, shipping_address, phone, payment_method, payment_status, notes) VALUES (?,?,?,?,?,?,?)");
     $oStmt->bind_param("idsssss", $userId, $total, $address, $phone, $payment, $paymentStatus, $notes);
 
@@ -134,7 +132,10 @@ if ($method === 'POST') {
         'success'        => true,
         'message'        => 'Order placed successfully!',
         'order_id'       => $orderId,
+        'subtotal'       => $subtotal,
+        'delivery_fee'   => $deliveryFee,
         'total'          => $total,
+        'total_amount'   => $total,
         'payment_method' => $payment,
     ]);
 }

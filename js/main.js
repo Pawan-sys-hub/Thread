@@ -412,6 +412,11 @@ async function initiateEsewaPayment(orderId, amount) {
 
 // ---- Init ----
 document.addEventListener('DOMContentLoaded', async () => {
+  if (document.body.classList.contains('admin-page') || window.location.pathname.includes('/frontend/admin/')) {
+    document.dispatchEvent(new Event('appReady'));
+    return;
+  }
+
   await buildNavbar();
   buildFooter();
   document.dispatchEvent(new Event('appReady'));

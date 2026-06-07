@@ -141,7 +141,7 @@
       if (payment === 'esewa') {
         // Real eSewa redirect
         showToast('Connecting to eSewa… 🔄', 'info');
-        await initiateEsewaPayment(r.order_id, r.total_amount);
+        await initiateEsewaPayment(r.order_id, r.total_amount || r.total);
         btn.disabled = false; btn.textContent = 'Place Order →';
       } else {
         showToast('Order placed successfully! 🎉');

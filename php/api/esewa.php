@@ -16,8 +16,8 @@ require_once '../db.php';
 
 // eSewa Config
 define('ESEWA_MERCHANT_CODE', 'EPAYTEST');           // Use your live merchant code in production
-define('ESEWA_VERIFY_URL', 'https://uat.esewa.com.np/epay/transrec');  // Test URL
-define('ESEWA_PAY_URL',    'https://uat.esewa.com.np/epay/main');       // Test URL
+define('ESEWA_PAY_URL', 'https://rc-epay.esewa.com.np/api/epay/main/v2');
+define('ESEWA_VERIFY_URL', 'https://rc-epay.esewa.com.np/api/epay/transrec');
 define('SITE_BASE_URL',    (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/TrendTrackV2");
 
 header('Content-Type: application/json');
