@@ -13,13 +13,14 @@
  *   GET  /php/api/esewa.php?action=verify    → verifies payment after eSewa callback
  */
 require_once '../db.php';
-header('Content-Type: application/json');
 
 // eSewa Config
 define('ESEWA_MERCHANT_CODE', 'EPAYTEST');           // Use your live merchant code in production
 define('ESEWA_VERIFY_URL', 'https://uat.esewa.com.np/epay/transrec');  // Test URL
 define('ESEWA_PAY_URL',    'https://uat.esewa.com.np/epay/main');       // Test URL
-define('SITE_BASE_URL',    'http://localhost/TrendTrackV2');
+define('SITE_BASE_URL',    (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . "/TrendTrackV2");
+
+header('Content-Type: application/json');
 
 $action = $_GET['action'] ?? 'initiate';
 $method = $_SERVER['REQUEST_METHOD'];

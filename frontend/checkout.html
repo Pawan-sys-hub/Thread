@@ -130,18 +130,22 @@
       const btn = document.getElementById('placeOrderBtn');
       btn.disabled = true; btn.textContent = 'Placing order…';
 
-      if (payment === 'esewa' || payment === 'khalti') {
-        showToast(`Redirecting to ${payment === 'esewa' ? 'eSewa' : 'Khalti'}… (demo mode)`, 'info');
-        await new Promise(r => setTimeout(r, 1500));
-      }
-
+      // Create the order first
       const r = await post(API.order, { shipping_address: address, phone, notes, payment_method: payment });
-      if (r.success) {
-        showToast('Order placed successfully! 🎉');
-        setTimeout(() => window.location.href = `orders.html`, 1500);
-      } else {
+      if (!r.success) {
         showToast(r.error || 'Failed to place order.', 'error');
         btn.disabled = false; btn.textContent = 'Place Order →';
+        return;
+      }
+
+      if (payment === 'esewa') {
+        // Real eSewa redirect
+        showToast('Connecting to eSewa… 🔄', 'info');
+        await initiateEsewaPayment(r.order_id, r.total_amount);
+        btn.disabled = false; btn.textContent = 'Place Order →';
+      } else {
+        showToast('Order placed successfully! 🎉');
+        setTimeout(() => window.location.href = `orders.html`, 1500);
       }
     }
 

@@ -15,10 +15,10 @@ function buildAdminLayout(pageTitle, pageSubtitle = '') {
   const sidebar = `
   <aside class="admin-sidebar" id="adminSidebar">
     <div class="admin-sidebar-logo">
-      <img src="/TrendTrackV2/assets/logo.png" alt="TrendTrack" onerror="this.style.display='none'">
-      <div>
-        TrendTrack
-        <span>Admin Panel</span>
+      <div class="admin-logo-icon">T</div>
+      <div class="admin-logo-text">
+        <span class="admin-logo-brand">TrendTrack</span>
+        <span class="admin-logo-sub">Admin Panel</span>
       </div>
     </div>
     <nav class="admin-nav">
@@ -52,12 +52,20 @@ function buildAdminLayout(pageTitle, pageSubtitle = '') {
   <div class="admin-main" id="adminMain">
     <header class="admin-topbar">
       <div class="admin-topbar-left">
-        <h1 id="pageTitle">${pageTitle}</h1>
-        <p id="pageSubtitle">${pageSubtitle}</p>
+        <button class="admin-sidebar-toggle" id="adminSidebarToggle" onclick="toggleAdminSidebar()">☰</button>
+        <div>
+          <h1 id="pageTitle">${pageTitle}</h1>
+          <p id="pageSubtitle">${pageSubtitle}</p>
+        </div>
       </div>
       <div class="admin-topbar-right">
-        <a href="/TrendTrackV2/frontend/index.html" style="font-size:0.8rem;color:var(--gray-500);transition:color .2s" onmouseover="this.style.color='var(--black)'" onmouseout="this.style.color='var(--gray-500)'">← View Store</a>
-        <div class="admin-user-avatar" id="adminUserAvatar">A</div>
+        <a href="/TrendTrackV2/frontend/index.html" class="admin-view-store-btn">
+          <span>🏪</span> View Store
+        </a>
+        <div class="admin-user-pill">
+          <div class="admin-user-avatar" id="adminUserAvatar">A</div>
+          <span class="admin-user-name" id="adminUserName">Admin</span>
+        </div>
       </div>
     </header>
     <div class="admin-content" id="adminContent"></div>
@@ -74,6 +82,19 @@ function buildAdminLayout(pageTitle, pageSubtitle = '') {
   document.querySelectorAll('.admin-nav-link').forEach(a => {
     if (a.dataset.page === page) a.classList.add('active');
   });
+
+  // Mobile overlay close
+  document.addEventListener('click', (e) => {
+    const sb = document.getElementById('adminSidebar');
+    const toggle = document.getElementById('adminSidebarToggle');
+    if (window.innerWidth <= 1024 && sb && !sb.contains(e.target) && e.target !== toggle) {
+      sb.classList.remove('open');
+    }
+  });
+}
+
+function toggleAdminSidebar() {
+  document.getElementById('adminSidebar')?.classList.toggle('open');
 }
 
 async function adminLogout() {
@@ -104,12 +125,12 @@ function confirmDelete(message, onConfirm) {
 
 // ---- Render empty state ----
 function emptyState(message = 'No records found.', icon = '📭') {
-  return `<tr><td colspan="100" style="text-align:center;padding:48px;color:var(--gray-400)"><div style="font-size:2.5rem;margin-bottom:12px">${icon}</div><p style="font-size:1rem">${message}</p></td></tr>`;
+  return `<tr><td colspan="100" style="text-align:center;padding:56px;color:var(--gray-400)"><div style="font-size:3rem;margin-bottom:12px">${icon}</div><p style="font-size:1rem;font-weight:600">${message}</p></td></tr>`;
 }
 
 // ---- Loading row ----
 function loadingRow(cols = 5) {
-  return `<tr><td colspan="${cols}" style="padding:32px;text-align:center;color:var(--gray-400)"><div style="display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--black);border-radius:50%;animation:spin .8s linear infinite"></div></td></tr>`;
+  return `<tr><td colspan="${cols}" style="padding:40px;text-align:center;color:var(--gray-400)"><div style="display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--black);border-radius:50%;animation:spin .8s linear infinite"></div><p style="margin-top:12px;font-size:0.85rem">Loading…</p></td></tr>`;
 }
 
 // Spin animation injected once

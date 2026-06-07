@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Success — TrendTrack</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .success-wrap {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+    }
+
+    .success-card {
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      padding: 56px 48px;
+      text-align: center;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid var(--border);
+      animation: fadeUp .5s ease both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .success-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.8rem;
+      margin: 0 auto 28px;
+    }
+
+    .success-icon.ok {
+      background: #dcfce7;
+    }
+
+    .success-icon.fail {
+      background: #fee2e2;
+    }
+
+    .success-card h1 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
+    .success-card p {
+      color: var(--gray-500);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+
+    .order-ref {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--gray-100);
+      border-radius: var(--radius-full);
+      padding: 8px 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--black);
+      margin: 20px 0 28px;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid var(--border);
+      border-top-color: var(--black);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <section class="success-wrap">
+    <div class="success-card" id="card">
+      <div class="spinner" id="spinner"></div>
+      <p id="statusMsg" style="color:var(--gray-400)">Verifying your payment…</p>
+    </div>
+  </section>
+
+  <script src="../js/main.js"></script>
+  <script>
+    document.addEventListener('appReady', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get('order');
+      const oid = params.get('oid');
+      const amt = params.get('amt');
+      const refId = params.get('refId');
+      const card = document.getElementById('card');
+
+      function showSuccess(orderNum) {
+        card.innerHTML = `
+          <div class="success-icon ok">✅</div>
+          <h1>Payment Successful!</h1>
+          <p>Your order has been confirmed and is being processed.</p>
+          ${orderNum ? `<div class="order-ref">🧾 Order #${orderNum}</div>` : ''}
+          <p style="margin-bottom:32px;font-size:0.85rem">You'll receive a notification once your order is shipped.</p>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <a href="orders.html" class="btn btn-primary">View My Orders</a>
+            <a href="index.html" class="btn btn-ghost">Continue Shopping</a>
+          </div>`;
+      }
+
+      function showFailure(msg) {
+        card.innerHTML = `
+          <div class="success-icon fail">❌</div>
+          <h1>Payment Failed</h1>
+          <p>${msg || 'Your payment could not be verified. Please try again.'}</p>
+          <div style="display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap">
+            <a href="checkout.html${orderId ? '?order=' + orderId : ''}" class="btn btn-primary">Try Again</a>
+            <a href="orders.html" class="btn btn-ghost">View Orders</a>
+          </div>`;
+      }
+
+      // If eSewa redirected here with verification params
+      if (oid && amt && refId) {
+        const r = await fetch(`${API.esewa}?action=verify&oid=${encodeURIComponent(oid)}&amt=${encodeURIComponent(amt)}&refId=${encodeURIComponent(refId)}`);
+        const data = await r.json();
+        if (data.success) {
+          showSuccess(data.order_id || orderId);
+        } else {
+          showFailure(data.error);
+        }
+      } else if (orderId) {
+        // COD or other — just show success
+        showSuccess(orderId);
+      } else {
+        showFailure('Invalid payment reference.');
+      }
+    });
+  </script>
+</body>
+
+</html>

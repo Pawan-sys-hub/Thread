@@ -4,24 +4,24 @@
 
 const API = {
   base: '/TrendTrackV2/php',
-  get trends()          { return `${this.base}/api/trends.php`; },
-  get product()         { return `${this.base}/api/product.php`; },
-  get categories()      { return `${this.base}/api/categories.php`; },
-  get cart()            { return `${this.base}/api/cart.php`; },
-  get wishlist()        { return `${this.base}/api/wishlist.php`; },
-  get order()           { return `${this.base}/api/order.php`; },
-  get profile()         { return `${this.base}/api/profile.php`; },
-  get session()         { return `${this.base}/api/session.php`; },
-  get esewa()           { return `${this.base}/api/esewa.php`; },
-  get login()           { return `${this.base}/auth/login.php`; },
-  get register()        { return `${this.base}/auth/register.php`; },
-  get logout()          { return `${this.base}/auth/logout.php`; },
+  get trends() { return `${this.base}/api/trends.php`; },
+  get product() { return `${this.base}/api/product.php`; },
+  get categories() { return `${this.base}/api/categories.php`; },
+  get cart() { return `${this.base}/api/cart.php`; },
+  get wishlist() { return `${this.base}/api/wishlist.php`; },
+  get order() { return `${this.base}/api/order.php`; },
+  get profile() { return `${this.base}/api/profile.php`; },
+  get session() { return `${this.base}/api/session.php`; },
+  get esewa() { return `${this.base}/api/esewa.php`; },
+  get login() { return `${this.base}/auth/login.php`; },
+  get register() { return `${this.base}/auth/register.php`; },
+  get logout() { return `${this.base}/auth/logout.php`; },
   // Admin
-  get adminDashboard()  { return `${this.base}/api/admin/dashboard.php`; },
-  get adminProducts()   { return `${this.base}/api/admin/products.php`; },
+  get adminDashboard() { return `${this.base}/api/admin/dashboard.php`; },
+  get adminProducts() { return `${this.base}/api/admin/products.php`; },
   get adminCategories() { return `${this.base}/api/admin/categories.php`; },
-  get adminOrders()     { return `${this.base}/api/admin/orders.php`; },
-  get adminUsers()      { return `${this.base}/api/admin/users.php`; },
+  get adminOrders() { return `${this.base}/api/admin/orders.php`; },
+  get adminUsers() { return `${this.base}/api/admin/users.php`; },
 };
 
 // ---- HTTP Helpers ----
@@ -44,10 +44,10 @@ async function apiFetch(url, options = {}) {
     return { success: false, error: 'Cannot connect to server. Make sure the server is running.' };
   }
 }
-const get  = (url) => apiFetch(url);
+const get = (url) => apiFetch(url);
 const post = (url, body) => apiFetch(url, { method: 'POST', body: JSON.stringify(body) });
-const put  = (url, body) => apiFetch(url, { method: 'PUT',  body: JSON.stringify(body) });
-const del  = (url, body) => apiFetch(url, { method: 'DELETE', body: JSON.stringify(body) });
+const put = (url, body) => apiFetch(url, { method: 'PUT', body: JSON.stringify(body) });
+const del = (url, body) => apiFetch(url, { method: 'DELETE', body: JSON.stringify(body) });
 
 // ---- Session / Auth ----
 let _session = null;
@@ -75,39 +75,40 @@ function clearSession() { _session = null; }
 
 // ---- Navbar ----
 const NAV_LINKS = [
-  { href: '/TrendTrackV2/frontend/index.html',              label: 'Home' },
-  { href: '/TrendTrackV2/frontend/trends.html',             label: 'All Fashion' },
-  { href: '/TrendTrackV2/frontend/trends.html?category=men',     label: 'Men' },
-  { href: '/TrendTrackV2/frontend/trends.html?category=women',   label: 'Women' },
+  { href: '/TrendTrackV2/frontend/index.html', label: 'Home' },
+  { href: '/TrendTrackV2/frontend/trends.html', label: 'All Fashion' },
+  { href: '/TrendTrackV2/frontend/trends.html?category=men', label: 'Men' },
+  { href: '/TrendTrackV2/frontend/trends.html?category=women', label: 'Women' },
   { href: '/TrendTrackV2/frontend/trends.html?category=accessories', label: 'Accessories' },
+  { href: '/TrendTrackV2/frontend/trends.html?trending=1', label: '🔥 Hot', hot: true },
 ];
 
 async function buildNavbar() {
-  const s      = await getSession();
+  const s = await getSession();
   const logged = s.logged_in;
-  const name   = s.user?.name ?? '';
-  const role   = s.role;
+  const name = s.user?.name ?? '';
+  const role = s.role;
 
   const cartCount = (logged && role !== 'admin') ? await fetchCartCount() : 0;
   const wishCount = (logged && role !== 'admin') ? await fetchWishCount() : 0;
 
   const adminLink = role === 'admin'
-    ? `<a href="/TrendTrackV2/frontend/admin/index.html" class="btn-admin">🛡️ Admin Panel</a>`
+    ? `<a href="/TrendTrackV2/frontend/admin/index.html" class="btn-admin"><span>🛡️</span> Admin</a>`
     : '';
 
   const html = `
   <nav class="navbar" id="navbar">
     <div class="container navbar-inner">
       <a href="/TrendTrackV2/frontend/index.html" class="navbar-logo">
-        <span style="font-size:1.4rem">👜</span>
-        TrendTrack
+        <span class="navbar-logo-icon">T</span>
+        <span class="navbar-logo-text">TrendTrack</span>
       </a>
       <div class="navbar-nav">
-        ${NAV_LINKS.map(l => `<a href="${l.href}" class="nav-link">${l.label}</a>`).join('')}
+        ${NAV_LINKS.map(l => `<a href="${l.href}" class="nav-link${l.hot ? ' nav-link-hot' : ''}">${l.label}</a>`).join('')}
       </div>
-      <div class="navbar-search">
-        <span>🔍</span>
-        <input type="text" id="navSearchInput" placeholder="Search fashion…">
+      <div class="navbar-search" id="navSearchWrap">
+        <span class="navbar-search-icon">🔍</span>
+        <input type="text" id="navSearchInput" placeholder="Search styles…" autocomplete="off">
       </div>
       <div class="navbar-actions">
         ${role !== 'admin' ? `
@@ -119,10 +120,13 @@ async function buildNavbar() {
         </a>` : ''}
         ${adminLink}
         ${logged
-      ? `<a href="/TrendTrackV2/frontend/profile.html" class="btn btn-auth btn-login" style="font-size:.8rem">👤 ${name.split(' ')[0]}</a>
-             <button onclick="handleLogout()" class="btn btn-auth btn-signup">Logout</button>`
+      ? `<a href="/TrendTrackV2/frontend/profile.html" class="btn btn-auth btn-login nav-user-btn">
+             <span class="nav-user-avatar">${name.charAt(0).toUpperCase()}</span>
+             ${name.split(' ')[0]}
+           </a>
+           <button onclick="handleLogout()" class="btn btn-auth btn-signup">Logout</button>`
       : `<a href="/TrendTrackV2/frontend/login.html" class="btn btn-auth btn-login">Login</a>
-             <a href="/TrendTrackV2/frontend/register.html" class="btn btn-auth btn-signup">Sign Up</a>`
+           <a href="/TrendTrackV2/frontend/register.html" class="btn btn-auth btn-signup">Sign Up</a>`
     }
       </div>
       <button class="hamburger" id="hamburger" aria-label="Menu">
@@ -133,12 +137,14 @@ async function buildNavbar() {
   <div class="mobile-menu" id="mobileMenu">
     ${NAV_LINKS.map(l => `<a href="${l.href}">${l.label}</a>`).join('')}
     ${role !== 'admin' ? `
+    <div class="mobile-menu-divider"></div>
     <a href="/TrendTrackV2/frontend/wishlist.html">♡ Wishlist ${wishCount ? `(${wishCount})` : ''}</a>
     <a href="/TrendTrackV2/frontend/cart.html">🛒 Cart ${cartCount ? `(${cartCount})` : ''}</a>` : ''}
+    <div class="mobile-menu-divider"></div>
     ${logged
       ? `${role === 'admin' ? `<a href="/TrendTrackV2/frontend/admin/index.html">🛡️ Admin Panel</a>` : ''}
-         <a href="/TrendTrackV2/frontend/profile.html">My Profile</a>
-         <a href="#" onclick="handleLogout()">Logout</a>`
+         <a href="/TrendTrackV2/frontend/profile.html">👤 My Profile</a>
+         <a href="#" onclick="handleLogout()">🚪 Logout</a>`
       : `<a href="/TrendTrackV2/frontend/login.html">Login</a>
          <a href="/TrendTrackV2/frontend/register.html">Sign Up</a>`}
   </div>`;
@@ -147,7 +153,9 @@ async function buildNavbar() {
   highlightActiveNav();
 
   document.getElementById('hamburger').addEventListener('click', () => {
-    document.getElementById('mobileMenu').classList.toggle('open');
+    const m = document.getElementById('mobileMenu');
+    m.classList.toggle('open');
+    document.getElementById('hamburger').classList.toggle('open');
   });
 
   const navSearch = document.getElementById('navSearchInput');
@@ -173,6 +181,8 @@ function highlightActiveNav() {
     }
   });
 }
+
+
 
 async function fetchCartCount() {
   try { const d = await get(API.cart); return d.success ? (d.count || 0) : 0; } catch { return 0; }
@@ -263,7 +273,7 @@ function showToast(message, type = 'success', duration = 3500) {
 // ---- Product Card (with Buy Now + Add to Cart) ----
 function productCard(p, wishlisted = false) {
   const discount = p.original_price ? Math.round((1 - p.price / p.original_price) * 100) : null;
-  const badge    = p.badge ? `<span class="product-badge badge-${p.badge.toLowerCase().replace(/\s+/g,'-')}">${p.badge}</span>` : '';
+  const badge = p.badge ? `<span class="product-badge badge-${p.badge.toLowerCase().replace(/\s+/g, '-')}">${p.badge}</span>` : '';
   const hotBadge = p.is_hot ? `<span class="hot-badge">🔥 Hot</span>` : '';
   const trendBadge = p.is_trending && !p.is_hot ? `<span class="trend-badge">📈 Trending</span>` : '';
   return `
