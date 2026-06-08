@@ -2580,3 +2580,41 @@ footer {
       grid-template-columns: 1fr;
    }
 }
+
+/* Payment icons – consistent size */
+.payment-logo,
+.payment-logo--square {
+    width: 56px !important;
+    height: 40px !important;
+    object-fit: contain;
+    border-radius: 6px;
+}
+.payment-logo--square {
+    background: #f8f8f8;
+    padding: 4px;
+}
+
+/* Admin main content – perfectly centered */
+.admin-main {
+    margin-left: 260px;
+    width: calc(100% - 260px);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.admin-content {
+    flex: 1;
+    padding: 32px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* Ensure no unwanted right shift on large screens */
+@media (min-width: 1400px) {
+    .admin-content {
+        padding: 32px 0;
+    }
+}

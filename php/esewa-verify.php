@@ -1,109 +1,172 @@
 <?php
-/**
- * eSewa success callback — eSewa redirects browser here with ?data=base64json
- */
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/esewa_config.php';
 
-function esewaRedirect($url)
-{
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+function esewaRedirect($url) {
     header('Location: ' . $url);
     exit;
 }
 
-function esewaFail($orderId, $reason = '')
-{
-    error_log('[ESEWA VERIFY FAIL] order=' . $orderId . ' reason=' . $reason);
-    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed' . ($orderId ? '&order=' . $orderId : ''));
-}
-
+/**
+ * GET ORDER ID SAFELY
+ */
 $orderId = (int)($_GET['order'] ?? ($_SESSION['pending_esewa_order'] ?? 0));
 
+/**
+ * VALIDATE CALLBACK PARAM
+ */
 if (empty($_GET['data'])) {
-    esewaFail($orderId, 'missing data param');
+    error_log("[eSewa] Missing data param");
+    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 }
 
+/**
+ * BASE64 DECODE
+ */
 $decoded = base64_decode($_GET['data'], true);
+
 if ($decoded === false) {
-    esewaFail($orderId, 'base64 decode failed');
+    error_log("[eSewa] Base64 decode failed");
+    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 }
 
+/**
+ * JSON DECODE
+ */
 $callback = json_decode($decoded, true);
+
 if (!is_array($callback)) {
-    esewaFail($orderId, 'json decode failed');
+    error_log("[eSewa] JSON decode failed");
+    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 }
 
-$status           = strtoupper(trim($callback['status'] ?? ''));
+/**
+ * EXTRACT DATA
+ */
+$status = strtoupper(trim($callback['status'] ?? ''));
 $transaction_uuid = trim($callback['transaction_uuid'] ?? '');
-$transaction_code = trim($callback['transaction_code'] ?? '');
-$total_amount     = esewaNormalizeAmount($callback['total_amount'] ?? '0');
+$total_amount = esewaNormalizeAmount($callback['total_amount'] ?? '0');
 
+/**
+ * BASIC VALIDATION
+ */
 if ($status !== 'COMPLETE' || !$transaction_uuid) {
-    esewaFail($orderId, 'status=' . $status . ' uuid=' . $transaction_uuid);
+    error_log("[eSewa] Invalid status or missing UUID");
+    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 }
 
-// Signature check — log but don't block sandbox payments
+/**
+ * OPTIONAL SIGNATURE CHECK (DO NOT BLOCK IN SANDBOX)
+ */
 if (!empty($callback['signature']) && !esewaVerifyCallbackSignature($callback)) {
-    error_log('[ESEWA] Signature mismatch for ' . $transaction_uuid);
+    error_log("[eSewa] Signature mismatch for $transaction_uuid");
 }
 
-$parsedOrderId = esewaExtractOrderId($transaction_uuid);
-if (!$parsedOrderId) {
-    $parsedOrderId = $orderId;
-}
-if ($orderId && $parsedOrderId && $parsedOrderId !== $orderId) {
-    esewaFail($orderId, 'order id mismatch');
+/**
+ * ORDER ID FROM UUID
+ */
+$extractedOrderId = esewaExtractOrderId($transaction_uuid);
+
+if ($extractedOrderId > 0) {
+    $orderId = $extractedOrderId;
 }
 
-$orderId = $parsedOrderId ?: $orderId;
+/**
+ * FINAL ORDER CHECK
+ */
 if (!$orderId) {
-    esewaFail(0, 'no order id');
+    error_log("[eSewa] Could not determine order ID");
+    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 }
 
-$stmt = $conn->prepare('SELECT id, total_amount, payment_status FROM orders WHERE id=?');
+/**
+ * FETCH ORDER
+ */
+$stmt = $conn->prepare("
+    SELECT id, total_amount, payment_status 
+    FROM orders 
+    WHERE id = ?
+");
+
 $stmt->bind_param('i', $orderId);
 $stmt->execute();
 $order = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$order) {
-    esewaFail($orderId, 'order not found');
+    error_log("[eSewa] Order #$orderId not found");
+    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 }
 
+/**
+ * ALREADY PAID
+ */
 if ($order['payment_status'] === 'paid') {
     esewaRedirect(SITE_BASE_URL . '/frontend/order-success.html?order=' . $orderId . '&verified=1');
 }
 
+/**
+ * AMOUNT VALIDATION
+ */
 $orderAmount = esewaNormalizeAmount($order['total_amount']);
+
 if (abs((float)$orderAmount - (float)$total_amount) > 0.05) {
-    esewaFail($orderId, "amount mismatch order={$orderAmount} callback={$total_amount}");
+    error_log("[eSewa] Amount mismatch: order=$orderAmount callback=$total_amount");
+    esewaRedirect(SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 }
 
-// Optional server-to-server check (non-blocking in sandbox)
+/**
+ * SERVER VERIFICATION (SAFE NON-BLOCKING)
+ */
 $verifyUrl = ESEWA_VERIFY_URL . '?' . http_build_query([
     'product_code'     => ESEWA_MERCHANT_CODE,
     'transaction_uuid' => $transaction_uuid,
     'total_amount'     => $orderAmount,
 ]);
-$ctx            = stream_context_create(['http' => ['timeout' => 15], 'ssl' => ['verify_peer' => false]]);
+
+$ctx = stream_context_create([
+    'http' => ['timeout' => 10]
+]);
+
 $verifyResponse = @file_get_contents($verifyUrl, false, $ctx);
+
 if ($verifyResponse !== false) {
     $verifyData = json_decode($verifyResponse, true);
-    if (is_array($verifyData) && !empty($verifyData['status'])) {
-        $remoteStatus = strtoupper($verifyData['status']);
-        if ($remoteStatus !== 'COMPLETE') {
-            error_log('[ESEWA] Remote status: ' . $remoteStatus);
+
+    if (is_array($verifyData)) {
+        $verifyStatus = strtoupper($verifyData['status'] ?? '');
+
+        if ($verifyStatus && $verifyStatus !== 'COMPLETE') {
+            error_log("[eSewa] Remote verification failed: " . $verifyStatus);
         }
     }
 }
 
-$paymentRef = $transaction_code ?: $transaction_uuid;
+/**
+ * MARK AS PAID
+ */
+$upd = $conn->prepare("
+    UPDATE orders 
+    SET payment_status='paid',
+        payment_ref=?,
+        status='processing'
+    WHERE id=?
+");
 
-$upd = $conn->prepare("UPDATE orders SET payment_status='paid', payment_ref=?, status='processing' WHERE id=?");
-$upd->bind_param('si', $paymentRef, $orderId);
+$upd->bind_param('si', $transaction_uuid, $orderId);
 $upd->execute();
 $upd->close();
 
+/**
+ * CLEAN SESSION
+ */
 unset($_SESSION['pending_esewa_order'], $_SESSION['pending_esewa_uuid']);
 
+/**
+ * SUCCESS REDIRECT
+ */
 esewaRedirect(SITE_BASE_URL . '/frontend/order-success.html?order=' . $orderId . '&verified=1');
