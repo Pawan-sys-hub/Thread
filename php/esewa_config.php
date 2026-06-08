@@ -12,7 +12,7 @@ $esewaHost     = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
 define('SITE_BASE_URL', $esewaProtocol . '://' . $esewaHost . '/TrendTrackV2');
 define('ESEWA_SUCCESS_URL', SITE_BASE_URL . '/php/esewa-verify.php');
-define('ESEWA_FAILURE_URL', SITE_BASE_URL . '/frontend/checkout.html?error=payment_failed');
+define('ESEWA_FAILURE_URL', SITE_BASE_URL . '/php/checkout.php?error=payment_failed');
 
 function esewaGenerateSignature($total_amount, $transaction_uuid, $product_code)
 {

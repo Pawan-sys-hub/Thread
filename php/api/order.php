@@ -128,7 +128,7 @@ if ($method === 'POST') {
         $delStmt->close();
     }
 
-    jsonResponse([
+    $response = [
         'success'        => true,
         'message'        => 'Order placed successfully!',
         'order_id'       => $orderId,
@@ -137,7 +137,41 @@ if ($method === 'POST') {
         'total'          => $total,
         'total_amount'   => $total,
         'payment_method' => $payment,
-    ]);
+    ];
+
+    // Return eSewa form fields immediately (same request as order — like AURANOIR)
+    if ($payment === 'esewa') {
+        require_once __DIR__ . '/../esewa_config.php';
+
+        $totalStr         = number_format((float)$total, 2, '.', '');
+        $transaction_uuid = esewaGenerateOrderRef($orderId);
+        $signature        = esewaGenerateSignature($totalStr, $transaction_uuid, ESEWA_MERCHANT_CODE);
+
+        $refStmt = $conn->prepare('UPDATE orders SET payment_ref=? WHERE id=?');
+        $refStmt->bind_param('si', $transaction_uuid, $orderId);
+        $refStmt->execute();
+        $refStmt->close();
+
+        $_SESSION['pending_esewa_order'] = $orderId;
+        $_SESSION['pending_esewa_uuid']  = $transaction_uuid;
+
+        $response['esewa'] = [
+            'pay_url'                 => ESEWA_PAY_URL,
+            'amount'                  => $totalStr,
+            'tax_amount'              => '0',
+            'product_service_charge'  => '0',
+            'product_delivery_charge' => '0',
+            'total_amount'            => $totalStr,
+            'transaction_uuid'        => $transaction_uuid,
+            'product_code'            => ESEWA_MERCHANT_CODE,
+            'success_url'             => ESEWA_SUCCESS_URL . '?order=' . $orderId,
+            'failure_url'             => ESEWA_FAILURE_URL . '&order=' . $orderId,
+            'signed_field_names'      => 'total_amount,transaction_uuid,product_code',
+            'signature'               => $signature,
+        ];
+    }
+
+    jsonResponse($response);
 }
 
 // ---- PUT — cancel pending order ----

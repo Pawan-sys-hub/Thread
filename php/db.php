@@ -5,7 +5,29 @@ define('DB_USER', 'pawan');
 define('DB_PASS', 'Pawan@9866!');
 define('DB_NAME', 'trendtrack_v2');
 
-// Start session only once
+// Fix broken default session path (/var/lib/php/sessions permission denied)
+$sessionDir = __DIR__ . '/sessions';
+if (!is_dir($sessionDir)) {
+    @mkdir($sessionDir, 0777, true);
+}
+@chmod($sessionDir, 0777);
+
+$sessionPath = null;
+if (is_dir($sessionDir) && is_writable($sessionDir)) {
+    $sessionPath = $sessionDir;
+} else {
+    $fallback = rtrim(sys_get_temp_dir(), '/') . '/trendtrack_sessions';
+    if (!is_dir($fallback)) {
+        @mkdir($fallback, 0777, true);
+    }
+    if (is_dir($fallback) && is_writable($fallback)) {
+        $sessionPath = $fallback;
+    }
+}
+if ($sessionPath) {
+    session_save_path($sessionPath);
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

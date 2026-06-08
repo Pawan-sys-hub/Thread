@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $orderId = (int)($_GET['order_id'] ?? 0);
 if (!$orderId) {
-    header('Location: ' . SITE_BASE_URL . '/frontend/checkout.html');
+    header('Location: ' . SITE_BASE_URL . '/php/checkout.php');
     exit;
 }
 
@@ -24,7 +24,7 @@ $order = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$order) {
-    header('Location: ' . SITE_BASE_URL . '/frontend/checkout.html');
+    header('Location: ' . SITE_BASE_URL . '/php/checkout.php');
     exit;
 }
 
@@ -38,7 +38,7 @@ if ($order['payment_status'] === 'paid') {
     exit;
 }
 
-$total            = $order['total_amount'];
+$total            = number_format((float)$order['total_amount'], 2, '.', '');
 $transaction_uuid = esewaGenerateOrderRef($orderId);
 $product_code     = ESEWA_MERCHANT_CODE;
 $signature        = esewaGenerateSignature($total, $transaction_uuid, $product_code);

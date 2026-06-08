@@ -385,7 +385,7 @@ async function quickBuyNow(productId, slug) {
     return;
   }
   if (s.role === 'admin') { showToast('Admins cannot shop.', 'error'); return; }
-  window.location.href = `/TrendTrackV2/frontend/checkout.html?buy_now=${productId}&qty=1`;
+  window.location.href = `/TrendTrackV2/php/checkout.php?buy_now=${productId}&qty=1`;
 }
 
 // ---- Toggle Wishlist ----
@@ -416,7 +416,39 @@ function skeletonGrid(count = 8, cols = 4) {
   </div>`;
 }
 
-// ---- eSewa Payment — server-side redirect page ----
+// ---- eSewa Payment — submit form directly (AURANOIR pattern) ----
+function submitEsewaForm(esewa) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = esewa.pay_url;
+  form.style.display = 'none';
+
+  const fields = {
+    amount: esewa.amount,
+    tax_amount: esewa.tax_amount,
+    product_service_charge: esewa.product_service_charge,
+    product_delivery_charge: esewa.product_delivery_charge,
+    total_amount: esewa.total_amount,
+    transaction_uuid: esewa.transaction_uuid,
+    product_code: esewa.product_code,
+    success_url: esewa.success_url,
+    failure_url: esewa.failure_url,
+    signed_field_names: esewa.signed_field_names,
+    signature: esewa.signature,
+  };
+
+  Object.entries(fields).forEach(([k, v]) => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = k;
+    inp.value = v;
+    form.appendChild(inp);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+}
+
 function initiateEsewaPayment(orderId) {
   window.location.href = `/TrendTrackV2/php/esewa-pay.php?order_id=${orderId}`;
 }

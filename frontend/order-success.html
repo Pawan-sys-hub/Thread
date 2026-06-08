@@ -96,7 +96,7 @@
           <h1>Payment Failed</h1>
           <p>${msg || 'Your payment could not be verified. Please try again.'}</p>
           <div style="display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap">
-            <a href="checkout.html${orderId ? '?order=' + orderId : ''}" class="btn btn-primary">Try Again</a>
+            <a href="/TrendTrackV2/php/checkout.php${orderId ? '?order=' + orderId : ''}" class="btn btn-primary">Try Again</a>
             <a href="orders.html" class="btn btn-ghost">View Orders</a>
           </div>`;
       }
