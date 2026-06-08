@@ -1473,6 +1473,53 @@ footer {
    top: 90px;
 }
 
+/* Payment method logos */
+.pay-option {
+   display: flex;
+   align-items: center;
+   gap: 14px;
+   padding: 16px;
+   border: 2px solid var(--border);
+   border-radius: var(--radius-md);
+   cursor: pointer;
+   transition: all 0.2s ease;
+}
+
+.pay-option:hover {
+   border-color: var(--gray-400);
+}
+
+.pay-option.selected {
+   border-color: var(--black);
+   background: var(--gray-100);
+}
+
+.pay-option.disabled {
+   opacity: 0.55;
+   cursor: not-allowed;
+}
+
+.payment-logo {
+   width: 72px;
+   height: 32px;
+   object-fit: contain;
+   flex-shrink: 0;
+   border-radius: 4px;
+}
+
+.payment-logo--square {
+   width: 40px;
+   height: 40px;
+   border-radius: 8px;
+}
+
+.payment-logo-sm {
+   height: 22px;
+   width: auto;
+   object-fit: contain;
+   border-radius: 3px;
+}
+
 .summary-row {
    display: flex;
    justify-content: space-between;

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 48" role="img" aria-label="eSewa">
+  <rect width="140" height="48" rx="8" fill="#60BB46"/>
+  <g fill="#fff" font-family="Segoe UI, Arial, sans-serif" font-weight="700">
+    <text x="70" y="31" text-anchor="middle" font-size="22" letter-spacing="-0.3">eSewa</text>
+  </g>
+</svg>

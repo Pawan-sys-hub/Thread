@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 48" role="img" aria-label="Khalti">
+  <defs>
+    <linearGradient id="khaltiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B3FA0"/>
+      <stop offset="100%" stop-color="#5C2D91"/>
+    </linearGradient>
+  </defs>
+  <rect width="140" height="48" rx="8" fill="url(#khaltiGrad)"/>
+  <path d="M28 14h5v8l7-8h6l-8 9.5 8.5 10.5h-6.2l-7.3-9.2V34h-5V14z" fill="#fff"/>
+  <text x="88" y="31" text-anchor="middle" fill="#fff" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700">Khalti</text>
+</svg>

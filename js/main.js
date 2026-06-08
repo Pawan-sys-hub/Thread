@@ -234,10 +234,11 @@ function buildFooter() {
             <a href="#">Contact Us</a>
           </div>
           <div style="margin-top:20px;padding:12px;background:rgba(255,255,255,0.06);border-radius:8px">
-            <p style="color:rgba(255,255,255,0.5);font-size:0.75rem;margin-bottom:6px">💳 We accept</p>
-            <div style="display:flex;gap:8px;align-items:center">
-              <span style="background:#60bb46;color:white;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:4px">eSewa</span>
-              <span style="color:rgba(255,255,255,0.5);font-size:0.75rem">Cash on Delivery</span>
+            <p style="color:rgba(255,255,255,0.5);font-size:0.75rem;margin-bottom:8px">💳 We accept</p>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <img src="/TrendTrackV2/assets/payments/esewa.svg" alt="eSewa" class="payment-logo-sm">
+              <img src="/TrendTrackV2/assets/payments/khalti.svg" alt="Khalti" class="payment-logo-sm">
+              <span style="color:rgba(255,255,255,0.5);font-size:0.75rem">COD</span>
             </div>
           </div>
         </div>

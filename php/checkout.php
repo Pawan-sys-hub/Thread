@@ -269,19 +269,28 @@ $pageTitle     = 'Checkout — TrendTrack';
                 <h3 class="admin-card-title">💳 Payment Method</h3>
               </div>
               <div style="padding:24px;display:flex;flex-direction:column;gap:12px">
-                <label class="pay-option" id="payEsewa" style="display:flex;align-items:center;gap:12px;padding:16px;border:2px solid var(--border);border-radius:var(--radius-md);cursor:pointer">
-                  <input type="radio" name="payment_method" value="esewa" style="accent-color:var(--green)">
-                  <span style="font-size:1.4rem">🟢</span>
-                  <div>
+                <label class="pay-option" id="payEsewa">
+                  <input type="radio" name="payment_method" value="esewa" style="accent-color:#60BB46">
+                  <img src="<?= SITE_BASE_URL ?>/assets/payments/esewa.svg" alt="eSewa" class="payment-logo">
+                  <div style="flex:1">
                     <div style="font-weight:700">eSewa</div>
-                    <div style="font-size:0.78rem;color:var(--gray-400)">Secure digital wallet</div>
+                    <div style="font-size:0.78rem;color:var(--gray-400)">Pay securely via eSewa wallet</div>
                   </div>
-                  <span style="margin-left:auto;background:#60BB46;color:white;padding:4px 10px;font-size:0.72rem;border-radius:4px;font-weight:600">Recommended</span>
+                  <span style="background:#60BB46;color:white;padding:4px 10px;font-size:0.72rem;border-radius:4px;font-weight:600">Recommended</span>
                 </label>
-                <label class="pay-option" id="payCod" style="display:flex;align-items:center;gap:12px;padding:16px;border:2px solid var(--black);border-radius:var(--radius-md);cursor:pointer;background:var(--gray-100)">
+                <label class="pay-option disabled" id="payKhalti" title="Coming soon">
+                  <input type="radio" name="payment_method" value="khalti" disabled style="accent-color:#5C2D91">
+                  <img src="<?= SITE_BASE_URL ?>/assets/payments/khalti.svg" alt="Khalti" class="payment-logo">
+                  <div style="flex:1">
+                    <div style="font-weight:700">Khalti</div>
+                    <div style="font-size:0.78rem;color:var(--gray-400)">Fast digital payments</div>
+                  </div>
+                  <span style="background:var(--gray-200);color:var(--gray-600);padding:4px 10px;font-size:0.72rem;border-radius:4px;font-weight:600">Soon</span>
+                </label>
+                <label class="pay-option selected" id="payCod">
                   <input type="radio" name="payment_method" value="cod" checked style="accent-color:var(--black)">
-                  <span style="font-size:1.4rem">💵</span>
-                  <div>
+                  <img src="<?= SITE_BASE_URL ?>/assets/payments/cod.svg" alt="Cash on Delivery" class="payment-logo payment-logo--square">
+                  <div style="flex:1">
                     <div style="font-weight:700">Cash on Delivery</div>
                     <div style="font-size:0.78rem;color:var(--gray-400)">Pay when you receive</div>
                   </div>
@@ -320,11 +329,10 @@ $pageTitle     = 'Checkout — TrendTrack';
     function highlightPayment() {
       const esewa = document.querySelector('input[value="esewa"]').checked;
       const cod   = document.querySelector('input[value="cod"]').checked;
-      document.getElementById('payEsewa').style.borderColor = esewa ? 'var(--black)' : 'var(--border)';
-      document.getElementById('payEsewa').style.background   = esewa ? 'var(--gray-100)' : '';
-      document.getElementById('payCod').style.borderColor   = cod ? 'var(--black)' : 'var(--border)';
-      document.getElementById('payCod').style.background    = cod ? 'var(--gray-100)' : '';
+      document.getElementById('payEsewa').classList.toggle('selected', esewa);
+      document.getElementById('payCod').classList.toggle('selected', cod);
     }
+    highlightPayment();
   </script>
 </body>
 </html>
