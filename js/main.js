@@ -304,6 +304,42 @@ function productCard(p, wishlisted = false) {
   </div>`;
 }
 
+// ---- Modal helpers (shared by store + admin) ----
+function openModal(backdropId) {
+  document.getElementById(backdropId)?.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(backdropId) {
+  document.getElementById(backdropId)?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+function setupModalClose(backdropId) {
+  const bd = document.getElementById(backdropId);
+  if (!bd) return;
+  bd.addEventListener('click', (e) => { if (e.target === bd) closeModal(backdropId); });
+}
+
+// ---- Order tracking timeline ----
+function orderTracker(status) {
+  const steps = [
+    { key: 'pending', label: 'Order Placed', icon: '📝' },
+    { key: 'processing', label: 'Processing', icon: '⚙️' },
+    { key: 'shipped', label: 'Shipped', icon: '🚚' },
+    { key: 'delivered', label: 'Delivered', icon: '✅' },
+  ];
+  const order = ['pending', 'processing', 'shipped', 'delivered'];
+  const currentIdx = status === 'cancelled' ? -1 : order.indexOf(status);
+
+  if (status === 'cancelled') {
+    return `<div class="order-tracker cancelled"><div class="order-track-step cancelled active"><span class="track-icon">❌</span><span class="track-label">Cancelled</span></div></div>`;
+  }
+
+  return `<div class="order-tracker">${steps.map((step, i) => {
+    const cls = i < currentIdx ? 'done' : i === currentIdx ? 'active' : '';
+    return `<div class="order-track-step ${cls}"><span class="track-dot">${step.icon}</span><span class="track-label">${step.label}</span></div>${i < steps.length - 1 ? '<div class="order-track-line ' + (i < currentIdx ? 'done' : '') + '"></div>' : ''}`;
+  }).join('')}</div>`;
+}
+
 // ---- Status Badge ----
 function statusBadge(status) {
   const labels = { pending: 'Pending', processing: 'Processing', shipped: 'Shipped', delivered: 'Delivered', cancelled: 'Cancelled', paid: 'Paid', unpaid: 'Unpaid', failed: 'Failed', active: 'Active', inactive: 'Inactive' };

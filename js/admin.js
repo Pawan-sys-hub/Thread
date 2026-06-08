@@ -79,10 +79,12 @@ function buildAdminLayout(pageTitle, pageSubtitle = '') {
   </div>`;
 
   document.body.classList.add('admin-page');
-  document.body.style.display = 'flex';
-  document.body.style.minHeight = '100vh';
-  document.body.style.background = 'var(--gray-100)';
   document.body.insertAdjacentHTML('afterbegin', sidebar + main);
+
+  // Move any pre-existing modals into admin-main so they don't affect page layout
+  document.querySelectorAll('.modal-backdrop').forEach(modal => {
+    document.getElementById('adminMain')?.appendChild(modal);
+  });
 
   // Highlight active link
   const page = document.body.dataset.page;

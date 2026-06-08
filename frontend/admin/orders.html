@@ -134,6 +134,10 @@
       if (!data.success) { document.getElementById('orderDetailBody').innerHTML = '<p style="color:var(--red)">Failed to load order.</p>'; return; }
       const o = data.order;
       document.getElementById('orderDetailBody').innerHTML = `
+    <div style="margin-bottom:20px">
+      <p style="font-size:0.8rem;color:var(--gray-400);margin-bottom:8px;font-weight:600">Order Status</p>
+      ${orderTracker(o.status)}
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;font-size:0.875rem">
       <div><span style="color:var(--gray-400)">Customer</span><br><strong>${o.customer_name}</strong><br><span style="font-size:0.78rem;color:var(--gray-400)">${o.email}</span></div>
       <div><span style="color:var(--gray-400)">Status</span><br>${statusBadge(o.status)}</div>

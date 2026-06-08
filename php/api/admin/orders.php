@@ -5,6 +5,22 @@ adminRequired();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
+if ($method === 'GET' && isset($_GET['id'])) {
+    $id   = (int)$_GET['id'];
+    $stmt = $conn->prepare("SELECT o.*, u.name AS customer_name, u.email FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $order = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$order) jsonResponse(['success' => false, 'error' => 'Order not found.'], 404);
+    $iStmt = $conn->prepare("SELECT oi.*, p.name, p.image_url FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?");
+    $iStmt->bind_param("i", $id);
+    $iStmt->execute();
+    $items = $iStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $iStmt->close();
+    jsonResponse(['success' => true, 'order' => $order, 'items' => $items]);
+}
+
 if ($method === 'GET') {
     $status = $_GET['status'] ?? '';
     $search = $_GET['search'] ?? '';
@@ -40,22 +56,6 @@ if ($method === 'GET') {
     $countStmt->close();
 
     jsonResponse(['success' => true, 'orders' => $orders, 'total' => (int)$total]);
-}
-
-if ($method === 'GET' && isset($_GET['id'])) {
-    $id   = (int)$_GET['id'];
-    $stmt = $conn->prepare("SELECT o.*, u.name AS customer_name, u.email FROM orders o JOIN users u ON o.user_id = u.id WHERE o.id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $order = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!$order) jsonResponse(['success' => false, 'error' => 'Order not found.'], 404);
-    $iStmt = $conn->prepare("SELECT oi.*, p.name, p.image_url FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?");
-    $iStmt->bind_param("i", $id);
-    $iStmt->execute();
-    $items = $iStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    $iStmt->close();
-    jsonResponse(['success' => true, 'order' => $order, 'items' => $items]);
 }
 
 if ($method === 'PUT') {

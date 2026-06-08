@@ -113,9 +113,7 @@
     document.addEventListener('appReady', async () => {
       const params = new URLSearchParams(window.location.search);
       const orderId = params.get('order');
-      const oid = params.get('oid');
-      const amt = params.get('amt');
-      const refId = params.get('refId');
+      const dataParam = params.get('data');
       const card = document.getElementById('card');
 
       function showSuccess(orderNum) {
@@ -124,7 +122,7 @@
           <h1>Payment Successful!</h1>
           <p>Your order has been confirmed and is being processed.</p>
           ${orderNum ? `<div class="order-ref">🧾 Order #${orderNum}</div>` : ''}
-          <p style="margin-bottom:32px;font-size:0.85rem">You'll receive a notification once your order is shipped.</p>
+          <p style="margin-bottom:32px;font-size:0.85rem">Track your order status anytime from My Orders.</p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
             <a href="orders.html" class="btn btn-primary">View My Orders</a>
             <a href="index.html" class="btn btn-ghost">Continue Shopping</a>
@@ -142,21 +140,37 @@
           </div>`;
       }
 
-      // If eSewa redirected here with verification params
-      if (oid && amt && refId) {
-        const r = await fetch(`${API.esewa}?action=verify&oid=${encodeURIComponent(oid)}&amt=${encodeURIComponent(amt)}&refId=${encodeURIComponent(refId)}`);
-        const data = await r.json();
-        if (data.success) {
-          showSuccess(data.order_id || orderId);
+      const user = await requireAuth();
+      if (!user) return;
+
+      // eSewa v2 redirects with base64 `data` param
+      if (dataParam) {
+        let url = `${API.esewa}?action=verify&data=${encodeURIComponent(dataParam)}`;
+        if (orderId) url += `&order=${encodeURIComponent(orderId)}`;
+        const r = await fetch(url, { credentials: 'same-origin' });
+        const result = await r.json();
+        if (result.success) {
+          showSuccess(result.order_id || orderId);
         } else {
-          showFailure(data.error);
+          showFailure(result.error);
         }
-      } else if (orderId) {
-        // COD or other — just show success
-        showSuccess(orderId);
-      } else {
-        showFailure('Invalid payment reference.');
+        return;
       }
+
+      // No callback data — check if order is already paid
+      if (orderId) {
+        const check = await get(`${API.order}?id=${orderId}`);
+        if (check.success && check.order?.payment_status === 'paid') {
+          showSuccess(orderId);
+        } else if (check.success && check.order?.payment_method === 'cod') {
+          showSuccess(orderId);
+        } else {
+          showFailure('Payment verification data missing. If you completed payment, check My Orders in a moment.');
+        }
+        return;
+      }
+
+      showFailure('Invalid payment reference.');
     });
   </script>
 </body>

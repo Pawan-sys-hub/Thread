@@ -145,7 +145,7 @@
         btn.disabled = false; btn.textContent = 'Place Order →';
       } else {
         showToast('Order placed successfully! 🎉');
-        setTimeout(() => window.location.href = `orders.html`, 1500);
+        setTimeout(() => window.location.href = `order-success.html?order=${r.order_id}`, 1500);
       }
     }
 

@@ -1595,9 +1595,9 @@ footer {
    ADMIN PANEL
    ============================================= */
 .admin-page {
-   display: flex;
    min-height: 100vh;
    background: #f1f3f6;
+   margin: 0;
 }
 
 .admin-sidebar {
@@ -1754,10 +1754,11 @@ footer {
 .admin-main {
    margin-left: 260px;
    width: calc(100% - 260px);
-   flex: 1;
+   max-width: calc(100vw - 260px);
    display: flex;
    flex-direction: column;
    min-height: 100vh;
+   box-sizing: border-box;
 }
 
 /* Topbar */
@@ -2309,6 +2310,80 @@ footer {
 
 .order-card-body {
    padding: 16px 20px;
+}
+
+.order-tracker {
+   display: flex;
+   align-items: center;
+   gap: 0;
+   margin: 16px 0;
+   padding: 12px 0;
+   overflow-x: auto;
+}
+
+.order-track-step {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 6px;
+   min-width: 72px;
+   opacity: 0.35;
+   transition: opacity 0.2s;
+}
+
+.order-track-step.done,
+.order-track-step.active {
+   opacity: 1;
+}
+
+.order-track-step.active .track-dot {
+   background: var(--black);
+   color: var(--white);
+   transform: scale(1.1);
+}
+
+.order-track-step.done .track-dot {
+   background: #dcfce7;
+   color: #166534;
+}
+
+.order-track-step.cancelled .track-dot {
+   background: #fee2e2;
+   color: #991b1b;
+}
+
+.track-dot {
+   width: 36px;
+   height: 36px;
+   border-radius: 50%;
+   background: var(--gray-100);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 1rem;
+   transition: all 0.2s;
+}
+
+.track-label {
+   font-size: 0.7rem;
+   font-weight: 600;
+   color: var(--gray-600);
+   text-align: center;
+   white-space: nowrap;
+}
+
+.order-track-line {
+   flex: 1;
+   height: 3px;
+   background: var(--gray-200);
+   min-width: 24px;
+   margin: 0 4px;
+   margin-bottom: 22px;
+   border-radius: 2px;
+}
+
+.order-track-line.done {
+   background: #86efac;
 }
 
 .order-item-row {

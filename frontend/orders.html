@@ -32,7 +32,7 @@
   </section>
 
   <div class="modal-backdrop" id="orderModal">
-    <div class="modal">
+    <div class="modal" style="max-width:640px">
       <div class="modal-header">
         <h3 class="modal-title" id="modalOrderTitle">Order Details</h3>
         <button class="modal-close" onclick="closeModal('orderModal')">✕</button>
@@ -82,8 +82,9 @@
         </div>
       </div>
       <div class="order-card-body">
+        ${orderTracker(o.status)}
         <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:8px">📍 ${o.shipping_address}</p>
-        <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:12px">💳 Payment: ${o.payment_method?.toUpperCase()} — ${statusBadge(o.payment_status || 'unpaid')}</p>
+        <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:12px">💳 Payment: ${(o.payment_method || 'cod').toUpperCase()} — ${statusBadge(o.payment_status || 'unpaid')}</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button onclick="viewOrder(${o.id})" class="action-btn view">View Details</button>
           ${o.status === 'pending' ? `<button onclick="cancelOrder(${o.id})" class="action-btn delete">Cancel Order</button>` : ''}
@@ -98,9 +99,13 @@
       const o = data.order;
       document.getElementById('modalOrderTitle').textContent = `Order #${o.id}`;
       document.getElementById('modalOrderBody').innerHTML = `
+    <div style="margin-bottom:20px">
+      <p style="font-size:0.8rem;color:var(--gray-400);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Order Tracking</p>
+      ${orderTracker(o.status)}
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;font-size:0.875rem">
       <div><span style="color:var(--gray-400)">Status</span><br>${statusBadge(o.status)}</div>
-      <div><span style="color:var(--gray-400)">Payment</span><br>${o.payment_method?.toUpperCase()} — ${statusBadge(o.payment_status || 'unpaid')}</div>
+      <div><span style="color:var(--gray-400)">Payment</span><br>${(o.payment_method || 'cod').toUpperCase()} — ${statusBadge(o.payment_status || 'unpaid')}</div>
       <div><span style="color:var(--gray-400)">Date</span><br>${formatDate(o.created_at)}</div>
       <div><span style="color:var(--gray-400)">Phone</span><br>${o.phone}</div>
     </div>
