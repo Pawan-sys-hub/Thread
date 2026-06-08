@@ -28,15 +28,8 @@
     }
 
     @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(24px)
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0)
-      }
+      from { opacity: 0; transform: translateY(24px) }
+      to { opacity: 1; transform: translateY(0) }
     }
 
     .success-icon {
@@ -50,24 +43,11 @@
       margin: 0 auto 28px;
     }
 
-    .success-icon.ok {
-      background: #dcfce7;
-    }
+    .success-icon.ok { background: #dcfce7; }
+    .success-icon.fail { background: #fee2e2; }
 
-    .success-icon.fail {
-      background: #fee2e2;
-    }
-
-    .success-card h1 {
-      font-size: 1.8rem;
-      margin-bottom: 10px;
-    }
-
-    .success-card p {
-      color: var(--gray-500);
-      margin-bottom: 6px;
-      font-size: 0.95rem;
-    }
+    .success-card h1 { font-size: 1.8rem; margin-bottom: 10px; }
+    .success-card p { color: var(--gray-500); margin-bottom: 6px; font-size: 0.95rem; }
 
     .order-ref {
       display: inline-flex;
@@ -81,31 +61,12 @@
       color: var(--black);
       margin: 20px 0 28px;
     }
-
-    .spinner {
-      width: 44px;
-      height: 44px;
-      border: 4px solid var(--border);
-      border-top-color: var(--black);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg)
-      }
-    }
   </style>
 </head>
 
 <body>
   <section class="success-wrap">
-    <div class="success-card" id="card">
-      <div class="spinner" id="spinner"></div>
-      <p id="statusMsg" style="color:var(--gray-400)">Verifying your payment…</p>
-    </div>
+    <div class="success-card" id="card"></div>
   </section>
 
   <script src="../js/main.js"></script>
@@ -113,16 +74,16 @@
     document.addEventListener('appReady', async () => {
       const params = new URLSearchParams(window.location.search);
       const orderId = params.get('order');
-      const dataParam = params.get('data');
+      const verified = params.get('verified');
       const card = document.getElementById('card');
 
       function showSuccess(orderNum) {
         card.innerHTML = `
           <div class="success-icon ok">✅</div>
-          <h1>Payment Successful!</h1>
+          <h1>Order Placed!</h1>
           <p>Your order has been confirmed and is being processed.</p>
           ${orderNum ? `<div class="order-ref">🧾 Order #${orderNum}</div>` : ''}
-          <p style="margin-bottom:32px;font-size:0.85rem">Track your order status anytime from My Orders.</p>
+          <p style="margin-bottom:32px;font-size:0.85rem">Track your order anytime from My Orders.</p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
             <a href="orders.html" class="btn btn-primary">View My Orders</a>
             <a href="index.html" class="btn btn-ghost">Continue Shopping</a>
@@ -140,37 +101,30 @@
           </div>`;
       }
 
+      if (!orderId) {
+        showFailure('Invalid order reference.');
+        return;
+      }
+
+      // eSewa payments are verified server-side in php/esewa-verify.php
+      if (verified === '1') {
+        showSuccess(orderId);
+        return;
+      }
+
       const user = await requireAuth();
       if (!user) return;
 
-      // eSewa v2 redirects with base64 `data` param
-      if (dataParam) {
-        let url = `${API.esewa}?action=verify&data=${encodeURIComponent(dataParam)}`;
-        if (orderId) url += `&order=${encodeURIComponent(orderId)}`;
-        const r = await fetch(url, { credentials: 'same-origin' });
-        const result = await r.json();
-        if (result.success) {
-          showSuccess(result.order_id || orderId);
-        } else {
-          showFailure(result.error);
-        }
-        return;
-      }
-
-      // No callback data — check if order is already paid
-      if (orderId) {
-        const check = await get(`${API.order}?id=${orderId}`);
-        if (check.success && check.order?.payment_status === 'paid') {
-          showSuccess(orderId);
-        } else if (check.success && check.order?.payment_method === 'cod') {
+      const check = await get(`${API.order}?id=${orderId}`);
+      if (check.success && check.order) {
+        if (check.order.payment_status === 'paid' || check.order.payment_method === 'cod') {
           showSuccess(orderId);
         } else {
-          showFailure('Payment verification data missing. If you completed payment, check My Orders in a moment.');
+          showFailure('Payment not completed. Please try again or check My Orders.');
         }
-        return;
+      } else {
+        showFailure('Could not load order details.');
       }
-
-      showFailure('Invalid payment reference.');
     });
   </script>
 </body>

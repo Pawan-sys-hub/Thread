@@ -139,10 +139,13 @@
       }
 
       if (payment === 'esewa') {
-        // Real eSewa redirect
-        showToast('Connecting to eSewa… 🔄', 'info');
-        await initiateEsewaPayment(r.order_id, r.total_amount || r.total);
+        showToast('Redirecting to eSewa…', 'info');
+        window.location.href = `/TrendTrackV2/php/esewa-pay.php?order_id=${r.order_id}`;
+        return;
+      } else if (payment === 'khalti') {
+        showToast('Khalti is not available yet. Please choose eSewa or COD.', 'error');
         btn.disabled = false; btn.textContent = 'Place Order →';
+        return;
       } else {
         showToast('Order placed successfully! 🎉');
         setTimeout(() => window.location.href = `order-success.html?order=${r.order_id}`, 1500);

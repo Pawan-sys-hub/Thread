@@ -416,38 +416,9 @@ function skeletonGrid(count = 8, cols = 4) {
   </div>`;
 }
 
-// ---- eSewa Payment Initiation ----
-async function initiateEsewaPayment(orderId, amount) {
-  showToast('Connecting to eSewa…', 'info');
-  const r = await post(`${API.esewa}?action=initiate`, { order_id: orderId, amount: amount });
-  if (!r.success) { showToast(r.error || 'eSewa initiation failed.', 'error'); return; }
-
-  // Build and submit eSewa v2 form
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = r.pay_url;
-
-  const fields = {
-    amount: r.amount,
-    tax_amount: r.tax_amount,
-    product_service_charge: r.product_service_charge,
-    product_delivery_charge: r.product_delivery_charge,
-    total_amount: r.total_amount,
-    transaction_uuid: r.transaction_uuid,
-    product_code: r.product_code,
-    success_url: r.success_url,
-    failure_url: r.failure_url,
-    signed_field_names: r.signed_field_names,
-    signature: r.signature
-  };
-
-  Object.entries(fields).forEach(([k, v]) => {
-    const inp = document.createElement('input');
-    inp.type = 'hidden'; inp.name = k; inp.value = v;
-    form.appendChild(inp);
-  });
-  document.body.appendChild(form);
-  form.submit();
+// ---- eSewa Payment — server-side redirect page ----
+function initiateEsewaPayment(orderId) {
+  window.location.href = `/TrendTrackV2/php/esewa-pay.php?order_id=${orderId}`;
 }
 
 
